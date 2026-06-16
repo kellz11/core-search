@@ -3,24 +3,15 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta name="description" content="Search internet culture through the Core graph." />
-<title>core - visual culture search</title>
+<meta name="description" content="The visual and written index of Core internet culture." />
+<title>Core Wiki</title>
 <link rel="stylesheet" href="./styles.css" />
-<link rel="stylesheet" href="./fandom-core-view.css" />
+<link rel="stylesheet" href="./wiki.css" />
+<link rel="stylesheet" href="./core-wiki-main.css" />
 </head>
 <body>
-<header class="site-header"><button class="wordmark" id="homeButton" type="button">core</button><form class="search-form" id="searchForm" role="search"><input id="searchInput" name="q" type="search" placeholder="Type anything - search within the Core graph" autocomplete="off" /><button class="clear-button" id="clearButton" type="button" hidden>x</button><button class="search-button" id="searchButton" type="submit">Search</button></form></header>
-<nav class="quick-searches" id="quickSearches"></nav><main id="app" tabindex="-1"></main>
-<template id="skeletonTemplate"><div class="skeleton-card"><div class="skeleton-image"></div><div class="skeleton-line"></div></div></template>
-<script src="./data/core-graph-01.js"></script>
-<script src="./data/core-graph-02.js"></script>
-<script src="./data/core-graph-03.js"></script>
-<script src="./data/core-graph-04.js"></script>
-<script src="./data/core-graph-05.js"></script>
-<script src="./data/core-graph-06.js"></script>
-<script src="./taxonomy.js"></script>
-<script src="./core-search-mode.js"></script>
-<script src="./fandom-core-view.js"></script>
-<script type="module" src="./app.js"></script>
+<header class="site-header"><button class="wordmark" id="homeButton" type="button" aria-label="Open the Core Wiki index">core</button><form class="search-form" id="searchForm" role="search"><input id="searchInput" name="core" type="search" placeholder="Search the Core Wiki" autocomplete="off" spellcheck="false" aria-label="Search the Core Wiki" /><button class="clear-button" id="clearButton" type="button" aria-label="Clear search" hidden>&times;</button><button class="search-button" id="searchButton" type="submit">Open</button></form></header>
+<main id="app" tabindex="-1"></main>
+<script type="module" src="./core-wiki-main.js"></script>
 </body>
 </html>
