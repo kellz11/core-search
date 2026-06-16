@@ -85,12 +85,26 @@
     return [...ids].map((id) => byId.get(id)).filter(Boolean).slice(0, limit).map((node) => node.name);
   }
 
+  // Resolve the phrase sent to outside image providers. The Core suffix is a
+  // taxonomy label, not a generic search keyword. Known graph nodes can still
+  // supply a purpose-built image_query.
   function resolveCoreSearchQuery(query) {
     const clean = String(query || "").replace(/\s+/g, " ").trim();
     if (!clean) return clean;
-    const match = findCorePath(clean);
+
+    const subject = clean.replace(/\s+core$/i, "").trim() || clean;
+    const match = findCorePath(subject);
     if (match && match.score >= 650) return match.node.image_query || match.node.name;
-    return /core$/i.test(clean) ? clean : `${clean} core`;
+    return subject;
+  }
+
+  function resolveCoreLabel(query) {
+    const clean = String(query || "").replace(/\s+/g, " ").trim();
+    if (!clean) return clean;
+    const match = findCorePath(clean);
+    if (match && match.score >= 850) return match.node.name;
+    const subject = clean.replace(/\s+core$/i, "").trim() || clean;
+    return `${subject} core`;
   }
 
   const evidence = nodes.map((node) => {
@@ -123,4 +137,5 @@
   window.siblingCores = siblingCores;
   window.relatedCores = relatedCores;
   window.resolveCoreSearchQuery = resolveCoreSearchQuery;
+  window.resolveCoreLabel = resolveCoreLabel;
 })();
