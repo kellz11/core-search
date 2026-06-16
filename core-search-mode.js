@@ -28,9 +28,6 @@
       const keywords = (node.keywords || []).map(cleanInput).filter(Boolean);
       const isAesthetic = node.type === "aesthetic" || node.type === "internet";
 
-      // Niche Core names often do not exist in open-license image metadata.
-      // Search their visual meaning instead of asking providers for phrases
-      // such as "Dreamcore aesthetic moodboard", which returns nothing.
       if (isAesthetic && keywords.length) {
         if (provider === "wikimedia") {
           return { query: keywords[0], exactPhrase: false };
@@ -82,7 +79,15 @@
 
   window.addEventListener("DOMContentLoaded", () => {
     const input = document.getElementById("searchInput");
-    if (!input) return;
-    input.placeholder = "Type anything — search within the Core graph";
+    if (input) input.placeholder = "Type anything — search within the Core graph";
+
+    const header = document.querySelector(".site-header");
+    if (header && !header.querySelector(".wiki-nav-link")) {
+      const link = document.createElement("a");
+      link.className = "wiki-nav-link";
+      link.href = "./core.html";
+      link.textContent = "Core Wiki";
+      header.appendChild(link);
+    }
   });
 })();
