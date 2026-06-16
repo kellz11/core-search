@@ -1,27 +1,59 @@
 (() => {
   const originalFetch = window.fetch.bind(window);
 
-  // "Core" is the site's organizing layer, not a literal keyword that should
-  // be sent to every outside image source. Sending "Tiger Woods core" to
-  // Wikimedia caused it to match the butterfly species Euploea core.
-  function providerQuery(value) {
-    const clean = String(value || "").replace(/\s+/g, " ").trim();
-    if (!clean) return clean;
+  function cleanInput(value) {
+    return String(value || "").replace(/\s+/g, " ").trim();
+  }
 
-    if (window.resolveCoreSearchQuery) {
-      return window.resolveCoreSearchQuery(clean);
-    }
-
+  function stripGenericCoreSuffix(value) {
+    const clean = cleanInput(value);
     return clean.replace(/\s+core$/i, "").trim() || clean;
   }
 
-  function wikimediaQuery(value) {
-    const clean = providerQuery(value).replace(/["“”]/g, "").trim();
-    if (!clean) return clean;
+  function matchedNode(value) {
+    if (!window.findCorePath) return null;
+    const match = window.findCorePath(stripGenericCoreSuffix(value));
+    return match && match.score >= 650 ? match : null;
+  }
 
-    // Multi-word subjects should be treated as a phrase. This prevents one
-    // strong word such as "core" or "woods" from hijacking the results.
-    return clean.includes(" ") ? `"${clean}"` : clean;
+  function providerSearch(value, provider) {
+    const clean = cleanInput(value);
+    if (!clean) return { query: clean, exactPhrase: false };
+
+    const subject = stripGenericCoreSuffix(clean);
+    const match = matchedNode(clean);
+
+    if (match?.node) {
+      const node = match.node;
+      const keywords = (node.keywords || []).map(cleanInput).filter(Boolean);
+      const isAesthetic = node.type === "aesthetic" || node.type === "internet";
+
+      // Niche Core names often do not exist in open-license image metadata.
+      // Search their visual meaning instead of asking providers for phrases
+      // such as "Dreamcore aesthetic moodboard", which returns nothing.
+      if (isAesthetic && keywords.length) {
+        if (provider === "wikimedia") {
+          return { query: keywords[0], exactPhrase: false };
+        }
+        return { query: keywords.slice(0, 2).join(" "), exactPhrase: false };
+      }
+
+      const imageQuery = cleanInput(node.image_query || node.name)
+        .replace(/\b(?:aesthetic\s+)?moodboard\b/gi, "")
+        .replace(/\baesthetic\s+reference\b/gi, "")
+        .replace(/\s+/g, " ")
+        .trim();
+
+      return {
+        query: imageQuery || node.name || subject,
+        exactPhrase: provider === "wikimedia" && (imageQuery || node.name || subject).includes(" ")
+      };
+    }
+
+    return {
+      query: subject,
+      exactPhrase: provider === "wikimedia" && subject.includes(" ")
+    };
   }
 
   window.fetch = (resource, options) => {
@@ -30,12 +62,15 @@
       const url = new URL(rawUrl, window.location.href);
 
       if (url.hostname === "api.openverse.org" && url.searchParams.has("q")) {
-        url.searchParams.set("q", providerQuery(url.searchParams.get("q")));
+        const resolved = providerSearch(url.searchParams.get("q"), "openverse");
+        url.searchParams.set("q", resolved.query);
         resource = typeof resource === "string" ? url.toString() : new Request(url.toString(), resource);
       }
 
       if (url.hostname === "commons.wikimedia.org" && url.searchParams.has("gsrsearch")) {
-        url.searchParams.set("gsrsearch", wikimediaQuery(url.searchParams.get("gsrsearch")));
+        const resolved = providerSearch(url.searchParams.get("gsrsearch"), "wikimedia");
+        const query = resolved.exactPhrase ? `"${resolved.query.replace(/["“”]/g, "")}"` : resolved.query;
+        url.searchParams.set("gsrsearch", query);
         resource = typeof resource === "string" ? url.toString() : new Request(url.toString(), resource);
       }
     } catch (error) {
@@ -47,22 +82,7 @@
 
   window.addEventListener("DOMContentLoaded", () => {
     const input = document.getElementById("searchInput");
-    const form = document.getElementById("searchForm");
-    if (!input || !form) return;
-
+    if (!input) return;
     input.placeholder = "Type anything — search within the Core graph";
-
-    let timer;
-    input.addEventListener("input", () => {
-      clearTimeout(timer);
-      const value = input.value.replace(/\s+/g, " ").trim();
-      if (!value) return;
-
-      timer = setTimeout(() => {
-        if (input.value.replace(/\s+/g, " ").trim() === value) {
-          form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
-        }
-      }, 350);
-    });
   });
 })();
