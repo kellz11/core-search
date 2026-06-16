@@ -1,32 +1,24 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Search internet culture, aesthetics, people, places, brands, and ideas through images." />
-  <meta name="theme-color" content="#ffffff" />
-  <title>core - visual culture search</title>
-  <link rel="stylesheet" href="./styles.css" />
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="description" content="Search internet culture through the Core graph." />
+<title>core - visual culture search</title>
+<link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <header class="site-header">
-    <button class="wordmark" id="homeButton" type="button" aria-label="Go to Core home">core</button>
-    <form class="search-form" id="searchForm" role="search">
-      <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4.4-4.4"></path></svg>
-      <input id="searchInput" name="q" type="search" placeholder="Type anything - search within the Core graph" autocomplete="off" spellcheck="false" aria-label="Search visual culture" />
-      <button class="clear-button" id="clearButton" type="button" aria-label="Clear search" hidden>x</button>
-      <button class="search-button" id="searchButton" type="submit">Search</button>
-    </form>
-  </header>
-  <nav class="quick-searches" id="quickSearches" aria-label="Popular searches"></nav>
-  <main id="app" tabindex="-1"></main>
-  <template id="skeletonTemplate"><div class="skeleton-card" aria-hidden="true"><div class="skeleton-image"></div><div class="skeleton-line"></div></div></template>
-  <script src="./data/core-graph-01.js"></script>
-  <script src="./data/core-graph-02.js"></script>
-  <script src="./data/core-graph-03.js"></script>
-  <script src="./data/core-graph-04.js"></script>
-  <script src="./taxonomy.js"></script>
-  <script src="./core-search-mode.js"></script>
-  <script type="module" src="./app.js"></script>
+<header class="site-header"><button class="wordmark" id="homeButton" type="button">core</button><form class="search-form" id="searchForm" role="search"><input id="searchInput" name="q" type="search" placeholder="Type anything - search within the Core graph" autocomplete="off" /><button class="clear-button" id="clearButton" type="button" hidden>x</button><button class="search-button" id="searchButton" type="submit">Search</button></form></header>
+<nav class="quick-searches" id="quickSearches"></nav><main id="app" tabindex="-1"></main>
+<template id="skeletonTemplate"><div class="skeleton-card"><div class="skeleton-image"></div><div class="skeleton-line"></div></div></template>
+<script src="./data/core-graph-01.js"></script>
+<script src="./data/core-graph-02.js"></script>
+<script src="./data/core-graph-03.js"></script>
+<script src="./data/core-graph-04.js"></script>
+<script src="./data/core-graph-05.js"></script>
+<script src="./data/core-graph-06.js"></script>
+<script src="./taxonomy.js"></script>
+<script src="./core-search-mode.js"></script>
+<script type="module" src="./app.js"></script>
 </body>
 </html>
