@@ -1,7 +1,6 @@
 (() => {
   const parts = window.__CORE_GRAPH_PARTS__ || [];
   const nodes = parts.flatMap((part) => part.nodes || []);
-  const edges = parts.flatMap((part) => part.edges || []);
   const byId = new Map(nodes.map((node) => [node.id, node]));
   const children = new Map();
 
@@ -11,13 +10,22 @@
     children.get(parent).push(node);
   });
 
+  const edges = [];
+  nodes.forEach((node) => {
+    if (node.parent && byId.has(node.parent)) {
+      edges.push({ source: node.id, target: node.parent, relationship: "CHILD_OF", weight: 1, notes: "taxonomy hierarchy", status: "retained" });
+    }
+    (node.related || []).forEach((rawTarget) => {
+      const target = String(rawTarget || "").trim();
+      if (target && target !== node.id && byId.has(target)) {
+        edges.push({ source: node.id, target, relationship: "RELATED_TO", weight: 0.7, notes: "curated related node", status: "retained" });
+      }
+    });
+  });
+
   const normalize = (value) => String(value || "")
-    .toLowerCase()
-    .replace(/&/g, " and ")
-    .replace(/[^a-z0-9]+/g, " ")
-    .replace(/\bcore\b/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+    .toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9]+/g, " ")
+    .replace(/\bcore\b/g, " ").replace(/\s+/g, " ").trim();
 
   function scoreNode(node, query) {
     const target = normalize(query);
@@ -65,7 +73,7 @@
   function relatedCores(query, limit = 7) {
     const match = findCorePath(query);
     if (!match) return searchCoreGraph(query, limit).map((result) => result.node.name);
-    const ids = new Set();
+    const ids = new Set((match.node.related || []).map((id) => String(id).trim()));
     edges.forEach((edge) => {
       if (edge.source === match.node.id) ids.add(edge.target);
       if (edge.target === match.node.id) ids.add(edge.source);
@@ -85,7 +93,31 @@
     return /core$/i.test(clean) ? clean : `${clean} core`;
   }
 
-  window.CORE_GRAPH = { version: "1.0.0", nodes, edges };
+  const evidence = nodes.map((node) => {
+    const fandomUrl = (node.source_urls || []).find((url) => String(url).includes("aesthetics.fandom.com")) || "";
+    const sourceCount = fandomUrl ? 1 : 0;
+    return {
+      id: node.id, name: node.name, type: node.type, parent: node.parent,
+      verification_status: node.verification_status, confidence_score: node.confidence_score,
+      evidence_status: node.verification_status === "taxonomy_approved" ? "taxonomy_approved" : (sourceCount ? "source_attached" : "pending_source_validation"),
+      source_count: sourceCount,
+      fandom_page_status: sourceCount ? "source_attached_needs_page_confirmation" : "not_confirmed_in_current_pass",
+      fandom_page_url: fandomUrl,
+      fandom_search_url: `https://aesthetics.fandom.com/wiki/Special:Search?query=${encodeURIComponent(node.name)}`,
+      google_trends_query_url: `https://trends.google.com/trends/explore?geo=US&q=${encodeURIComponent(node.name)}`,
+      google_trends_value: "", google_trends_status: "requires_collector_or_manual_export",
+      reddit_query_url: `https://www.reddit.com/search/?q=${encodeURIComponent(node.name)}&type=posts`,
+      reddit_posts_value: "", reddit_status: "requires_api_or_scraper",
+      youtube_query_url: `https://www.youtube.com/results?search_query=${encodeURIComponent(node.name)}`,
+      youtube_results_value: "", youtube_status: "requires_youtube_data_api",
+      measurable_signal_count: sourceCount,
+      signal_status: node.verification_status === "taxonomy_approved" ? "taxonomy_only" : (sourceCount ? "partial_real_snapshot" : "collector_pending"),
+      snapshot_date: "2026-06-16", source_caveat: ""
+    };
+  });
+
+  window.CORE_GRAPH = { version: "1.0.0", nodes, edges, evidence };
+  window.CORE_EVIDENCE = evidence;
   window.searchCoreGraph = searchCoreGraph;
   window.findCorePath = findCorePath;
   window.siblingCores = siblingCores;
