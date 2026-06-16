@@ -1,12 +1,27 @@
 (() => {
   const originalFetch = window.fetch.bind(window);
 
-  function coreQuery(value) {
+  // "Core" is the site's organizing layer, not a literal keyword that should
+  // be sent to every outside image source. Sending "Tiger Woods core" to
+  // Wikimedia caused it to match the butterfly species Euploea core.
+  function providerQuery(value) {
     const clean = String(value || "").replace(/\s+/g, " ").trim();
     if (!clean) return clean;
-    return window.resolveCoreSearchQuery
-      ? window.resolveCoreSearchQuery(clean)
-      : (/core$/i.test(clean) ? clean : `${clean} core`);
+
+    if (window.resolveCoreSearchQuery) {
+      return window.resolveCoreSearchQuery(clean);
+    }
+
+    return clean.replace(/\s+core$/i, "").trim() || clean;
+  }
+
+  function wikimediaQuery(value) {
+    const clean = providerQuery(value).replace(/["“”]/g, "").trim();
+    if (!clean) return clean;
+
+    // Multi-word subjects should be treated as a phrase. This prevents one
+    // strong word such as "core" or "woods" from hijacking the results.
+    return clean.includes(" ") ? `"${clean}"` : clean;
   }
 
   window.fetch = (resource, options) => {
@@ -15,16 +30,16 @@
       const url = new URL(rawUrl, window.location.href);
 
       if (url.hostname === "api.openverse.org" && url.searchParams.has("q")) {
-        url.searchParams.set("q", coreQuery(url.searchParams.get("q")));
+        url.searchParams.set("q", providerQuery(url.searchParams.get("q")));
         resource = typeof resource === "string" ? url.toString() : new Request(url.toString(), resource);
       }
 
       if (url.hostname === "commons.wikimedia.org" && url.searchParams.has("gsrsearch")) {
-        url.searchParams.set("gsrsearch", coreQuery(url.searchParams.get("gsrsearch")));
+        url.searchParams.set("gsrsearch", wikimediaQuery(url.searchParams.get("gsrsearch")));
         resource = typeof resource === "string" ? url.toString() : new Request(url.toString(), resource);
       }
     } catch (error) {
-      console.warn("Core graph search normalization skipped", error);
+      console.warn("Core search normalization skipped", error);
     }
 
     return originalFetch(resource, options);
