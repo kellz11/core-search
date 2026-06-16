@@ -19,12 +19,8 @@ async function api(query) {
 function pageUrl(title) {
   const url = new URL(location.href);
   url.search = "";
-  url.searchParams.set("core", title);
+  url.searchParams.set("core", clean(title));
   return `${url.pathname}${url.search}`;
-}
-
-function sourceUrl(title) {
-  return `https://aesthetics.fandom.com/wiki/${encodeURIComponent(title.replace(/ /g, "_"))}`;
 }
 
 async function coreIndex() {
@@ -57,21 +53,100 @@ function removeSection(heading) {
   }
 }
 
+function removeSensitiveNotices(doc) {
+  const warning = /sensitive content notice|content warning|reason for warning|following article contains and discusses content|may be distressing to some readers|may be unsettling to some viewers/i;
+  const selector = "p,div,section,aside,blockquote,table,li";
+  const matches = [...doc.querySelectorAll(selector)]
+    .filter((node) => {
+      const text = clean(node.textContent);
+      return text.length > 0 && text.length < 1800 && warning.test(text);
+    })
+    .sort((a, b) => clean(a.textContent).length - clean(b.textContent).length);
+
+  matches.forEach((node) => {
+    if (!node.isConnected) return;
+    const smallerMatch = [...node.querySelectorAll(selector)].some((child) => child !== node && warning.test(clean(child.textContent)));
+    if (!smallerMatch || node.matches("p,aside,blockquote,table,li")) node.remove();
+  });
+
+  [...doc.querySelectorAll("a,strong,b,span")].forEach((node) => {
+    if (warning.test(clean(node.textContent)) && clean(node.textContent).length < 300) {
+      const block = node.closest("p,div,section,aside,blockquote,table,li");
+      if (block && clean(block.textContent).length < 1800) block.remove();
+      else node.remove();
+    }
+  });
+}
+
+function unwrap(link) {
+  link.replaceWith(...link.childNodes);
+}
+
+function routeArticleLinks(doc) {
+  [...doc.querySelectorAll("a")].forEach((link) => {
+    const href = link.getAttribute("href") || "";
+    if (!href) {
+      unwrap(link);
+      return;
+    }
+
+    if (href.startsWith("#")) {
+      link.removeAttribute("target");
+      link.removeAttribute("rel");
+      return;
+    }
+
+    let url;
+    try {
+      url = new URL(href, "https://aesthetics.fandom.com/");
+    } catch {
+      unwrap(link);
+      return;
+    }
+
+    const fandomHost = /(^|\.)fandom\.com$/i.test(url.hostname) || /(^|\.)wikia\.com$/i.test(url.hostname);
+    if (fandomHost) {
+      const match = decodeURIComponent(url.pathname).match(/^\/wiki\/([^?#]+)$/i);
+      if (!match) {
+        unwrap(link);
+        return;
+      }
+
+      const title = clean(match[1].replace(/_/g, " "));
+      const namespace = title.includes(":") ? title.split(":", 1)[0].toLowerCase() : "";
+      const excluded = new Set(["file", "category", "special", "template", "user", "user talk", "talk", "help", "mediawiki", "module", "portal", "blog"]);
+      if (!title || excluded.has(namespace)) {
+        unwrap(link);
+        return;
+      }
+
+      link.href = pageUrl(title);
+      link.removeAttribute("target");
+      link.removeAttribute("rel");
+      return;
+    }
+
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+  });
+}
+
 function cleanArticle(html) {
   const doc = new DOMParser().parseFromString(html, "text/html");
   removeSection(galleryHeading(doc));
+  removeSensitiveNotices(doc);
   doc.querySelectorAll("script,style,iframe,object,embed,form,input,button,video,audio,img,picture,source,svg,canvas,table,figure,noscript,.mw-editsection,.portable-infobox,.gallery,.navbox,.toc,.references,.noprint,sup.reference").forEach((node) => node.remove());
+  routeArticleLinks(doc);
   doc.querySelectorAll("*").forEach((node) => {
     [...node.attributes].forEach((attribute) => {
       if (node.tagName === "A" && attribute.name === "href") return;
+      if (node.tagName === "A" && attribute.name === "target") return;
+      if (node.tagName === "A" && attribute.name === "rel") return;
       node.removeAttribute(attribute.name);
     });
   });
-  doc.querySelectorAll("a").forEach((link) => {
-    const href = link.getAttribute("href") || "";
-    if (href.startsWith("/wiki/")) link.href = `https://aesthetics.fandom.com${href}`;
-    link.target = "_blank";
-    link.rel = "noopener noreferrer";
+  doc.querySelectorAll("p,div,section,aside,blockquote").forEach((node) => {
+    if (!clean(node.textContent) && !node.querySelector("a")) node.remove();
   });
   return doc.body.innerHTML;
 }
@@ -107,7 +182,6 @@ async function imageInfo(files) {
       records.set(page.title.toLowerCase(), {
         title: page.title.replace(/^File:/i, "").replace(/\.[a-z0-9]+$/i, ""),
         image: info.thumburl || info.url,
-        source: info.descriptionurl || info.url,
         width: info.thumbwidth || info.width || null,
         height: info.thumbheight || info.height || null
       });
@@ -126,7 +200,7 @@ function renderError(message) {
 }
 
 function galleryCards(images) {
-  return images.map((item) => `<figure class="core-gallery-card"><a href="${item.source}" target="_blank" rel="noopener noreferrer"><img src="${item.image}" alt="${escapeHtml(item.title)}" loading="lazy" decoding="async"${item.width && item.height ? ` width="${item.width}" height="${item.height}"` : ""}></a></figure>`).join("");
+  return images.map((item) => `<figure class="core-gallery-card"><img src="${item.image}" alt="${escapeHtml(item.title)}" loading="lazy" decoding="async"${item.width && item.height ? ` width="${item.width}" height="${item.height}"` : ""}></figure>`).join("");
 }
 
 function wireArticleToggle() {
@@ -151,11 +225,10 @@ async function renderCore(title) {
   const files = await galleryFiles(canonical, parsed.sections);
   const images = await imageInfo(files);
   const article = cleanArticle(parsed.text);
-  const source = sourceUrl(canonical);
   input.value = canonical;
   clearButton.hidden = false;
   document.title = `${canonical} - Core Wiki`;
-  app.innerHTML = `<section class="core-wiki-shell"><div class="core-page-head"><h1 class="core-page-title">${escapeHtml(canonical)}</h1><a class="core-page-source" href="${source}" target="_blank" rel="noopener noreferrer">Original Aesthetics Wiki article</a></div><section class="core-article-preview"><div class="core-article-preview-bar"><p class="core-article-preview-label">Article</p></div><div class="core-article-preview-body">${article}</div><div class="core-article-preview-fade"></div><button class="core-article-toggle" type="button">Read full article</button></section><div class="core-gallery-meta"><h2>Gallery</h2><p>${images.length ? `${images.length} images from this article's Fandom gallery` : "No gallery images were found on this article"}</p></div>${images.length ? `<div class="core-gallery-grid">${galleryCards(images)}</div>` : ""}<footer class="wiki-attribution">Text and gallery sourced from <a href="${source}" target="_blank" rel="noopener noreferrer">${escapeHtml(canonical)} on the Aesthetics Wiki</a>. Image rights and licenses may vary by file.</footer></section>`;
+  app.innerHTML = `<section class="core-wiki-shell"><div class="core-page-head"><h1 class="core-page-title">${escapeHtml(canonical)}</h1></div><section class="core-article-preview"><div class="core-article-preview-bar"><p class="core-article-preview-label">Article</p></div><div class="core-article-preview-body">${article}</div><div class="core-article-preview-fade"></div><button class="core-article-toggle" type="button">Read full article</button></section><div class="core-gallery-meta"><h2>Gallery</h2><p>${images.length ? `${images.length} images from this article's gallery` : "No gallery images were found on this article"}</p></div>${images.length ? `<div class="core-gallery-grid">${galleryCards(images)}</div>` : ""}<footer class="wiki-attribution">Article text and gallery adapted from the Aesthetics Wiki. Image rights and licenses may vary by file.</footer></section>`;
   wireArticleToggle();
 }
 
@@ -165,7 +238,7 @@ async function renderHome() {
   clearButton.hidden = true;
   app.innerHTML = `<section class="core-state"><h1>Core Wiki</h1><p>Loading the Core index...</p></section>`;
   const pages = await coreIndex();
-  app.innerHTML = `<section class="core-wiki-shell"><div class="core-home"><p class="landing-kicker">Core Wiki</p><h1>The index of<br>internet culture.</h1><p class="core-home-copy">Open any core to see its original Aesthetics Wiki article and gallery together in one place.</p><p class="core-index-meta">${pages.length} Core pages</p><div class="core-index-grid">${pages.map((page) => `<a class="core-index-card" data-title="${escapeHtml(page.title.toLowerCase())}" href="${pageUrl(page.title)}">${escapeHtml(page.title)}</a>`).join("")}</div></div></section>`;
+  app.innerHTML = `<section class="core-wiki-shell"><div class="core-home"><p class="landing-kicker">Core Wiki</p><h1>The index of<br>internet culture.</h1><p class="core-home-copy">Open any core to see its article and gallery together in one place.</p><p class="core-index-meta">${pages.length} Core pages</p><div class="core-index-grid">${pages.map((page) => `<a class="core-index-card" data-title="${escapeHtml(page.title.toLowerCase())}" href="${pageUrl(page.title)}">${escapeHtml(page.title)}</a>`).join("")}</div></div></section>`;
 }
 
 function navigate(title) {
