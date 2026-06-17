@@ -19,7 +19,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Extract Core folders and build gallery manifest
+      - name: Extract Core folders and rebuild gallery manifest
         shell: bash
         run: |
           set -euo pipefail
@@ -30,11 +30,11 @@ jobs:
             exit 0
           fi
 
-          rm -rf assets/cores .gallery-import
           mkdir -p assets/cores .gallery-import
 
           for archive in "${archives[@]}"; do
             part_dir=".gallery-import/$(basename "$archive" .zip)"
+            rm -rf "$part_dir"
             mkdir -p "$part_dir"
             unzip -q "$archive" -d "$part_dir"
             find "$part_dir" -mindepth 1 -maxdepth 1 -type d -print0 | while IFS= read -r -d '' core_dir; do
