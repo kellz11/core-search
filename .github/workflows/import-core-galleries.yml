@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
   push:
     paths:
+      - "core-gallery-import-part-*.zip"
       - "imports/core-gallery-import-part-*.zip"
 
 permissions:
@@ -23,7 +24,7 @@ jobs:
         run: |
           set -euo pipefail
           shopt -s nullglob
-          archives=(imports/core-gallery-import-part-*.zip)
+          archives=(core-gallery-import-part-*.zip imports/core-gallery-import-part-*.zip)
           if [ ${#archives[@]} -eq 0 ]; then
             echo "No gallery import archives found."
             exit 0
@@ -80,6 +81,6 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add assets/cores imports
+          git add assets/cores imports core-gallery-import-part-*.zip
           git commit -m "Import Core gallery folders"
           git push
