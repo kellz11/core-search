@@ -1,0 +1,85 @@
+name: Import Core gallery folders
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "imports/core-gallery-import-part-*.zip"
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract Core folders and build gallery manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          archives=(imports/core-gallery-import-part-*.zip)
+          if [ ${#archives[@]} -eq 0 ]; then
+            echo "No gallery import archives found."
+            exit 0
+          fi
+
+          rm -rf assets/cores .gallery-import
+          mkdir -p assets/cores .gallery-import
+
+          for archive in "${archives[@]}"; do
+            part_dir=".gallery-import/$(basename "$archive" .zip)"
+            mkdir -p "$part_dir"
+            unzip -q "$archive" -d "$part_dir"
+            find "$part_dir" -mindepth 1 -maxdepth 1 -type d -print0 | while IFS= read -r -d '' core_dir; do
+              core_name="$(basename "$core_dir")"
+              mkdir -p "assets/cores/$core_name"
+              cp -a "$core_dir"/. "assets/cores/$core_name"/
+            done
+          done
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          root = Path("assets/cores")
+          allowed = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif"}
+          manifest = {}
+
+          for core_dir in sorted((p for p in root.iterdir() if p.is_dir()), key=lambda p: p.name.casefold()):
+              files = [
+                  path.relative_to(Path(".")).as_posix()
+                  for path in sorted(core_dir.rglob("*"), key=lambda p: p.as_posix().casefold())
+                  if path.is_file() and path.suffix.lower() in allowed
+              ]
+              manifest[core_dir.name] = files
+
+          (root / "manifest.json").write_text(
+              json.dumps(manifest, ensure_ascii=False, separators=(",", ":")),
+              encoding="utf-8",
+          )
+
+          print(f"Imported {len(manifest)} Core folders and {sum(map(len, manifest.values()))} images.")
+          PY
+
+          rm -rf .gallery-import
+          rm -f "${archives[@]}"
+
+      - name: Commit imported gallery assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet && [ -z "$(git status --porcelain)" ]; then
+            echo "No gallery changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/cores imports
+          git commit -m "Import Core gallery folders"
+          git push
