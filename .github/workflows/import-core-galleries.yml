@@ -31,6 +31,7 @@ jobs:
           fi
 
           mkdir -p assets/cores .gallery-import
+          rm -rf "assets/cores/Cannibalcore"
 
           for archive in "${archives[@]}"; do
             part_dir=".gallery-import/$(basename "$archive" .zip)"
@@ -39,6 +40,9 @@ jobs:
             unzip -q "$archive" -d "$part_dir"
             find "$part_dir" -mindepth 1 -maxdepth 1 -type d -print0 | while IFS= read -r -d '' core_dir; do
               core_name="$(basename "$core_dir")"
+              if [ "$core_name" = "Cannibalcore" ]; then
+                continue
+              fi
               mkdir -p "assets/cores/$core_name"
               cp -a "$core_dir"/. "assets/cores/$core_name"/
             done
@@ -53,6 +57,8 @@ jobs:
           manifest = {}
 
           for core_dir in sorted((p for p in root.iterdir() if p.is_dir()), key=lambda p: p.name.casefold()):
+              if core_dir.name == "Cannibalcore":
+                  continue
               files = [
                   path.relative_to(Path(".")).as_posix()
                   for path in sorted(core_dir.rglob("*"), key=lambda p: p.as_posix().casefold())
