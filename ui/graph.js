@@ -36,7 +36,7 @@ export function graphView(stats, recent) {
         <div class="graph-layout">
           <div class="graph-stage" id="graphStage">
             <canvas id="graphCanvas" aria-label="Interactive map of Core relationships"></canvas>
-            <div class="graph-help">Drag to pan · Scroll to zoom · Double-click a node to open its page</div>
+            <div class="graph-help">Drag empty space to pan · Scroll to zoom · Drag nodes to reposition · Double-click a node to open it</div>
             <div class="graph-legend">${Object.entries(RELATIONSHIPS).map(([key, value]) => `<span><i style="background:${value.color}"></i>${escapeHtml(value.label)}</span>`).join('')}</div>
           </div>
           <aside class="graph-detail" id="graphDetail"><div class="graph-detail-empty"><span>✦</span><h3>Select a core</h3><p>Click any node to inspect its metadata and connections.</p></div></aside>
@@ -53,14 +53,53 @@ function nodeDetail(node, graph, edgeMap) {
     const relation = graph.relationships[edge.relationship] || { label: edge.relationship, color: '#999' };
     return `<button class="connection-row" data-graph-node="${other.id}" type="button"><i style="background:${relation.color}"></i><span><b>${escapeHtml(other.name)}</b><small>${escapeHtml(relation.label)}</small></span><em>→</em></button>`;
   }).join('');
+
   return `<div class="graph-detail-content">
     ${node.thumbnail ? `<img class="graph-detail-image" src="${assetUrl(node.thumbnail)}" alt="${escapeHtml(node.name)}">` : ''}
-    <p class="graph-detail-cluster">${escapeHtml(node.clusterLabel)}</p><h2>${escapeHtml(node.name)}</h2><p class="graph-detail-description">${escapeHtml(node.description)}</p>
+    <p class="graph-detail-cluster">${escapeHtml(node.clusterLabel)}</p>
+    <h2>${escapeHtml(node.name)}</h2>
+    <p class="graph-detail-description">${escapeHtml(node.description)}</p>
     <dl class="graph-meta"><div><dt>Parent</dt><dd>${escapeHtml(node.parent)}</dd></div><div><dt>Era</dt><dd>${escapeHtml(node.era)}</dd></div><div><dt>Graphics</dt><dd>${fmt(node.graphicCount)}</dd></div><div><dt>Connections</dt><dd>${fmt(connections.length)}</dd></div></dl>
     <div class="graph-tags"><h4>Keywords</h4><p>${node.keywords.map((item) => `<span>${escapeHtml(item)}</span>`).join('')}</p><h4>Visuals</h4><p>${node.visuals.map((item) => `<span>${escapeHtml(item)}</span>`).join('')}</p><h4>Emotions</h4><p>${node.emotions.map((item) => `<span>${escapeHtml(item)}</span>`).join('')}</p></div>
     <a class="graph-open-core" href="${pageUrl(node.name)}">Open ${escapeHtml(node.name)} →</a>
-    <h4 class="connections-title">Connected cores</h4><div class="connection-list">${rows || '<p class="graph-detail-description">No curated connections yet.</p>'}</div>
+    <h4 class="connections-title">Connected cores</h4>
+    <div class="connection-list">${rows || '<p class="graph-detail-description">No curated connections yet.</p>'}</div>
   </div>`;
+}
+
+function assignStablePositions(graph, edgeMap) {
+  const grouped = new Map();
+  graph.nodes.forEach((node) => {
+    if (!grouped.has(node.cluster)) grouped.set(node.cluster, []);
+    grouped.get(node.cluster).push(node);
+  });
+
+  const clusters = [...grouped.entries()];
+  const clusterRadiusX = 420;
+  const clusterRadiusY = 320;
+
+  clusters.forEach(([cluster, nodes], clusterIndex) => {
+    const clusterAngle = (clusterIndex / Math.max(1, clusters.length)) * Math.PI * 2 - Math.PI / 2;
+    const centerX = Math.cos(clusterAngle) * clusterRadiusX;
+    const centerY = Math.sin(clusterAngle) * clusterRadiusY;
+    const sorted = [...nodes].sort((a, b) => (edgeMap.get(b.id)?.length || 0) - (edgeMap.get(a.id)?.length || 0));
+
+    sorted.forEach((node, index) => {
+      if (index === 0) {
+        node.x = centerX;
+        node.y = centerY;
+      } else {
+        const ring = Math.floor((index - 1) / 7);
+        const position = (index - 1) % 7;
+        const countInRing = Math.min(7, sorted.length - 1 - ring * 7);
+        const angle = (position / Math.max(1, countInRing)) * Math.PI * 2 + ring * .31;
+        const radius = 105 + ring * 68;
+        node.x = centerX + Math.cos(angle) * radius;
+        node.y = centerY + Math.sin(angle) * radius;
+      }
+      node.radius = 7 + Math.min(5, (edgeMap.get(node.id)?.length || 0) * .35);
+    });
+  });
 }
 
 export function mountCoreGraph(records) {
@@ -85,17 +124,7 @@ export function mountCoreGraph(records) {
     edgeMap.get(to.id).push({ edge, other: from });
   });
 
-  const clusters = [...new Set(graph.nodes.map((node) => node.cluster))];
-  graph.nodes.forEach((node, index) => {
-    const clusterIndex = clusters.indexOf(node.cluster);
-    const angle = (clusterIndex / Math.max(1, clusters.length)) * Math.PI * 2;
-    const local = index * 2.399;
-    node.x = Math.cos(angle) * 330 + Math.cos(local) * 90;
-    node.y = Math.sin(angle) * 260 + Math.sin(local) * 90;
-    node.vx = 0;
-    node.vy = 0;
-    node.radius = 7 + Math.min(5, (edgeMap.get(node.id)?.length || 0) * .35);
-  });
+  assignStablePositions(graph, edgeMap);
 
   const context = canvas.getContext('2d');
   let width = 1;
@@ -111,12 +140,20 @@ export function mountCoreGraph(records) {
   let dragNode = null;
   let panning = false;
   let lastPointer = null;
-  let animationFrame;
-  let temperature = 1;
 
-  const visibleEdges = () => relationship === 'all' ? graph.edges : graph.edges.filter((edge) => edge.relationship === relationship);
-  const worldToScreen = (x, y) => ({ x: x * zoom + panX + width / 2, y: y * zoom + panY + height / 2 });
-  const screenToWorld = (x, y) => ({ x: (x - panX - width / 2) / zoom, y: (y - panY - height / 2) / zoom });
+  const visibleEdges = () => relationship === 'all'
+    ? graph.edges
+    : graph.edges.filter((edge) => edge.relationship === relationship);
+
+  const worldToScreen = (x, y) => ({
+    x: x * zoom + panX + width / 2,
+    y: y * zoom + panY + height / 2
+  });
+
+  const screenToWorld = (x, y) => ({
+    x: (x - panX - width / 2) / zoom,
+    y: (y - panY - height / 2) / zoom
+  });
 
   function resize() {
     const rect = stage.getBoundingClientRect();
@@ -131,72 +168,15 @@ export function mountCoreGraph(records) {
     draw();
   }
 
-  function simulate() {
-    const nodes = graph.nodes;
-    const repulsion = 1900 * temperature;
-    for (let i = 0; i < nodes.length; i += 1) {
-      for (let j = i + 1; j < nodes.length; j += 1) {
-        const a = nodes[i];
-        const b = nodes[j];
-        let dx = b.x - a.x;
-        let dy = b.y - a.y;
-        let distanceSq = dx * dx + dy * dy + 35;
-        const force = repulsion / distanceSq;
-        const distance = Math.sqrt(distanceSq);
-        dx /= distance;
-        dy /= distance;
-        a.vx -= dx * force;
-        a.vy -= dy * force;
-        b.vx += dx * force;
-        b.vy += dy * force;
-      }
-    }
-
-    graph.edges.forEach((edge) => {
-      const a = nodeById.get(edge.from);
-      const b = nodeById.get(edge.to);
-      if (!a || !b) return;
-      const dx = b.x - a.x;
-      const dy = b.y - a.y;
-      const distance = Math.max(1, Math.sqrt(dx * dx + dy * dy));
-      const desired = edge.relationship === 'category_parent' ? 100 : 135;
-      const force = (distance - desired) * .0022 * temperature;
-      const nx = dx / distance;
-      const ny = dy / distance;
-      a.vx += nx * force;
-      a.vy += ny * force;
-      b.vx -= nx * force;
-      b.vy -= ny * force;
-    });
-
-    const clusterCenters = new Map();
-    clusters.forEach((cluster, index) => {
-      const angle = index / clusters.length * Math.PI * 2;
-      clusterCenters.set(cluster, { x: Math.cos(angle) * 300, y: Math.sin(angle) * 230 });
-    });
-
-    nodes.forEach((node) => {
-      const center = clusterCenters.get(node.cluster) || { x: 0, y: 0 };
-      node.vx += (center.x - node.x) * .0007 * temperature;
-      node.vy += (center.y - node.y) * .0007 * temperature;
-      node.vx += -node.x * .00015;
-      node.vy += -node.y * .00015;
-      node.vx *= .88;
-      node.vy *= .88;
-      if (node !== dragNode) {
-        node.x += node.vx;
-        node.y += node.vy;
-      }
-    });
-    temperature = Math.max(.12, temperature * .994);
-  }
-
   function draw() {
     context.clearRect(0, 0, width, height);
     context.save();
     context.lineCap = 'round';
 
-    const selectedConnections = selected ? new Set((edgeMap.get(selected.id) || []).map(({ other }) => other.id)) : null;
+    const selectedConnections = selected
+      ? new Set((edgeMap.get(selected.id) || []).map(({ other }) => other.id))
+      : null;
+
     visibleEdges().forEach((edge) => {
       const from = nodeById.get(edge.from);
       const to = nodeById.get(edge.to);
@@ -205,9 +185,10 @@ export function mountCoreGraph(records) {
       const b = worldToScreen(to.x, to.y);
       const config = graph.relationships[edge.relationship] || { color: '#aaa' };
       const active = selected && (selected.id === from.id || selected.id === to.id);
-      context.globalAlpha = selected ? (active ? .72 : .07) : .19;
+
+      context.globalAlpha = selected ? (active ? .75 : .06) : .22;
       context.strokeStyle = config.color;
-      context.lineWidth = active ? 1.8 : .8;
+      context.lineWidth = active ? 2 : .9;
       context.beginPath();
       context.moveTo(a.x, a.y);
       context.lineTo(b.x, b.y);
@@ -223,26 +204,23 @@ export function mountCoreGraph(records) {
       context.beginPath();
       context.arc(point.x, point.y, node.radius * Math.max(.75, zoom), 0, Math.PI * 2);
       context.fill();
+
       if (selected?.id === node.id || hovered?.id === node.id) {
         context.strokeStyle = '#111';
         context.lineWidth = 2;
         context.stroke();
       }
+
       const showLabel = zoom > .68 || selected?.id === node.id || hovered?.id === node.id || (searchTerm && matchesSearch);
       if (showLabel) {
-        context.globalAlpha = matchesSearch && connected ? .94 : .14;
+        context.globalAlpha = matchesSearch && connected ? .96 : .14;
         context.fillStyle = '#171717';
         context.font = `${selected?.id === node.id ? 700 : 600} ${Math.max(10, Math.min(13, 11 * zoom))}px Inter, sans-serif`;
         context.fillText(node.name, point.x + node.radius * zoom + 5, point.y + 4);
       }
     });
-    context.restore();
-  }
 
-  function animate() {
-    simulate();
-    draw();
-    animationFrame = requestAnimationFrame(animate);
+    context.restore();
   }
 
   function nodeAt(clientX, clientY) {
@@ -251,6 +229,7 @@ export function mountCoreGraph(records) {
     const y = clientY - rect.top;
     let best = null;
     let bestDistance = Infinity;
+
     graph.nodes.forEach((node) => {
       const point = worldToScreen(node.x, node.y);
       const distance = Math.hypot(point.x - x, point.y - y);
@@ -265,10 +244,14 @@ export function mountCoreGraph(records) {
 
   function selectNode(node, center = false) {
     selected = node;
-    detail.innerHTML = node ? nodeDetail(node, graph, edgeMap) : '<div class="graph-detail-empty"><span>✦</span><h3>Select a core</h3><p>Click any node to inspect its metadata and connections.</p></div>';
+    detail.innerHTML = node
+      ? nodeDetail(node, graph, edgeMap)
+      : '<div class="graph-detail-empty"><span>✦</span><h3>Select a core</h3><p>Click any node to inspect its metadata and connections.</p></div>';
+
     detail.querySelectorAll('[data-graph-node]').forEach((button) => {
       button.addEventListener('click', () => selectNode(nodeById.get(button.dataset.graphNode), true));
     });
+
     if (node && center) {
       panX = -node.x * zoom;
       panY = -node.y * zoom;
@@ -277,13 +260,21 @@ export function mountCoreGraph(records) {
   }
 
   function fitGraph() {
+    if (!graph.nodes.length) return;
     const xs = graph.nodes.map((node) => node.x);
     const ys = graph.nodes.map((node) => node.y);
-    const spanX = Math.max(...xs) - Math.min(...xs) || 1;
-    const spanY = Math.max(...ys) - Math.min(...ys) || 1;
-    zoom = Math.min(1.2, Math.max(.35, Math.min((width - 100) / spanX, (height - 100) / spanY)));
-    panX = 0;
-    panY = 0;
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...ys);
+    const spanX = Math.max(1, maxX - minX);
+    const spanY = Math.max(1, maxY - minY);
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
+
+    zoom = Math.min(1.15, Math.max(.32, Math.min((width - 120) / spanX, (height - 120) / spanY)));
+    panX = -centerX * zoom;
+    panY = -centerY * zoom;
     draw();
   }
 
@@ -294,32 +285,43 @@ export function mountCoreGraph(records) {
     lastPointer = { x: event.clientX, y: event.clientY };
     if (dragNode) selectNode(dragNode);
   });
+
   canvas.addEventListener('pointermove', (event) => {
     hovered = nodeAt(event.clientX, event.clientY);
     canvas.style.cursor = hovered ? 'pointer' : (panning ? 'grabbing' : 'grab');
     if (!lastPointer) return draw();
+
     const dx = event.clientX - lastPointer.x;
     const dy = event.clientY - lastPointer.y;
+
     if (dragNode) {
-      const world = screenToWorld(event.clientX - canvas.getBoundingClientRect().left, event.clientY - canvas.getBoundingClientRect().top);
+      const rect = canvas.getBoundingClientRect();
+      const world = screenToWorld(event.clientX - rect.left, event.clientY - rect.top);
       dragNode.x = world.x;
       dragNode.y = world.y;
-      dragNode.vx = 0;
-      dragNode.vy = 0;
-      temperature = Math.max(temperature, .35);
     } else if (panning) {
       panX += dx;
       panY += dy;
     }
+
     lastPointer = { x: event.clientX, y: event.clientY };
     draw();
   });
-  canvas.addEventListener('pointerup', () => { dragNode = null; panning = false; lastPointer = null; });
-  canvas.addEventListener('pointercancel', () => { dragNode = null; panning = false; lastPointer = null; });
+
+  const stopPointer = () => {
+    dragNode = null;
+    panning = false;
+    lastPointer = null;
+  };
+
+  canvas.addEventListener('pointerup', stopPointer);
+  canvas.addEventListener('pointercancel', stopPointer);
+
   canvas.addEventListener('dblclick', (event) => {
     const node = nodeAt(event.clientX, event.clientY);
     if (node) location.href = pageUrl(node.name);
   });
+
   canvas.addEventListener('wheel', (event) => {
     event.preventDefault();
     const rect = canvas.getBoundingClientRect();
@@ -334,14 +336,22 @@ export function mountCoreGraph(records) {
 
   search?.addEventListener('input', () => {
     searchTerm = search.value.toLowerCase().trim();
-    const match = searchTerm ? graph.nodes.find((node) => node.name.toLowerCase() === searchTerm) || graph.nodes.find((node) => node.name.toLowerCase().startsWith(searchTerm)) : null;
+    const match = searchTerm
+      ? graph.nodes.find((node) => node.name.toLowerCase() === searchTerm)
+        || graph.nodes.find((node) => node.name.toLowerCase().startsWith(searchTerm))
+      : null;
     if (match) selectNode(match, true);
     draw();
   });
-  relationSelect?.addEventListener('change', () => { relationship = relationSelect.value; draw(); });
+
+  relationSelect?.addEventListener('change', () => {
+    relationship = relationSelect.value;
+    draw();
+  });
+
   document.getElementById('graphFit')?.addEventListener('click', fitGraph);
   document.getElementById('graphExport')?.addEventListener('click', () => {
-    const payload = JSON.stringify({ nodes: graph.nodes.map(({ x, y, vx, vy, radius, ...node }) => node), edges: graph.edges }, null, 2);
+    const payload = JSON.stringify({ nodes: graph.nodes.map(({ x, y, radius, ...node }) => node), edges: graph.edges }, null, 2);
     const url = URL.createObjectURL(new Blob([payload], { type: 'application/json' }));
     const link = document.createElement('a');
     link.href = url;
@@ -350,10 +360,13 @@ export function mountCoreGraph(records) {
     URL.revokeObjectURL(url);
   });
 
-  const observer = new ResizeObserver(resize);
+  const observer = new ResizeObserver(() => {
+    resize();
+    fitGraph();
+  });
   observer.observe(stage);
   resize();
-  animate();
-  setTimeout(fitGraph, 700);
-  return () => { observer.disconnect(); cancelAnimationFrame(animationFrame); };
+  fitGraph();
+
+  return () => observer.disconnect();
 }
