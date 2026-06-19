@@ -2,13 +2,15 @@ import { clean, getStats, loadManifest, normalize } from './core-data.js';
 import { loadCore } from './article.js';
 import { homeView, coreView } from './views.js';
 import { aboutView, archiveView, articlesView, coresView, graphicsView } from './sections.js';
+import { graphView, mountCoreGraph } from './graph.js';
 
 const app = document.getElementById('app');
 const RECENT_KEY = 'coreWikiRecent';
-const VALID_VIEWS = new Set(['home', 'cores', 'articles', 'graphics', 'archive', 'about']);
+const VALID_VIEWS = new Set(['home', 'cores', 'articles', 'graphics', 'graph', 'archive', 'about']);
 let graphicsLimit = 60;
 let graphicsQuery = '';
 let graphicsTimer;
+let graphCleanup = null;
 
 function getRecentNames() {
   try { return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]'); }
@@ -33,6 +35,11 @@ function currentView() {
   if (params.get('core')) return 'core';
   const view = params.get('view') || 'home';
   return VALID_VIEWS.has(view) ? view : 'home';
+}
+
+function stopGraph() {
+  if (typeof graphCleanup === 'function') graphCleanup();
+  graphCleanup = null;
 }
 
 function goView(view) {
@@ -159,8 +166,17 @@ async function renderHome() {
   });
 }
 
+async function renderGraph() {
+  const [stats, recent] = await Promise.all([getStats(), recentRecords()]);
+  document.title = 'Core Graph - Core Wiki';
+  app.innerHTML = graphView(stats, recent);
+  wireCommon();
+  graphCleanup = mountCoreGraph(stats.records);
+}
+
 async function renderSection(view) {
   if (view === 'graphics') return renderGraphics();
+  if (view === 'graph') return renderGraph();
   const [stats, recent] = await Promise.all([getStats(), recentRecords()]);
   const builders = { cores: coresView, articles: articlesView, archive: archiveView, about: aboutView };
   const builder = builders[view] || coresView;
@@ -181,6 +197,7 @@ async function renderCore(title) {
 }
 
 async function renderRoute() {
+  stopGraph();
   app.innerHTML = '<div class="loading-wrap">Loading Core Wiki...</div>';
   const params = new URL(location.href).searchParams;
   const core = params.get('core');
@@ -190,6 +207,7 @@ async function renderRoute() {
 }
 
 function renderError(error) {
+  stopGraph();
   app.innerHTML = `<div class="error-wrap"><div><h2>Page unavailable</h2><p>${String(error?.message || 'The page could not be loaded.')}</p><p><a href="./">Return home</a></p></div></div>`;
 }
 
