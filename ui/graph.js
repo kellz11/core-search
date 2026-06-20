@@ -1,1 +1,1 @@
-export { graphView, mountCoreGraph } from './graph-v2.js';
+export { graphView, mountCoreGraph } from './graph-v3.js';
