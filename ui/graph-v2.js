@@ -13,11 +13,11 @@ export function graphView(stats,recent){
   return `<div class="app-shell">${sidebar('graph',recent)}<main class="content-shell">${topbar()}<section class="main-card graph-page">
     <header class="graph-header"><div><p class="kicker">Core Wiki</p><h1 class="section-page-title">Core Graph</h1><p class="section-description">Search a core and see its world: visual overlap, emotional overlap, historical influence, category relationships, and shared user interest.</p></div><div class="graph-summary"><strong id="graphNodeCount">0</strong><span>nodes</span><strong id="graphEdgeCount">0</strong><span>edges</span></div></header>
     <div class="graph-controls"><label class="graph-search"><span>⌕</span><input id="graphSearch" type="search" placeholder="Search the graph..."></label><select id="graphRelationship"><option value="all">All relationships</option>${Object.entries(RELATIONSHIPS).map(([key,value])=>`<option value="${key}">${escapeHtml(value.label)}</option>`).join('')}</select><button id="graphFit" type="button">Fit graph</button><button id="graphExport" type="button">Export JSON</button></div>
-    <div class="graph-layout"><div class="graph-stage" id="graphStage"><canvas id="graphCanvas"></canvas><div class="graph-help">Hover a node for the pointer · Drag empty space to pan · Click empty space to deselect · Scroll to zoom</div><div class="graph-legend">${Object.values(RELATIONSHIPS).map((value)=>`<span><i style="background:${value.color}"></i>${escapeHtml(value.label)}</span>`).join('')}</div></div><aside class="graph-detail" id="graphDetail"></aside></div>
+    <div class="graph-layout"><div class="graph-stage" id="graphStage"><canvas id="graphCanvas"></canvas><div class="graph-help">Left-click a node to select · Left-click empty space to clear · Right-click and drag to move · Scroll to zoom</div><div class="graph-legend">${Object.values(RELATIONSHIPS).map((value)=>`<span><i style="background:${value.color}"></i>${escapeHtml(value.label)}</span>`).join('')}</div></div><aside class="graph-detail" id="graphDetail"></aside></div>
   </section>${footer()}</main></div>`;
 }
 
-function emptyDetail(){return '<div class="graph-detail-empty"><span>✦</span><h3>Select a core</h3><p>Click any node to inspect its metadata and connections.</p></div>';}
+function emptyDetail(){return '<div class="graph-detail-empty"><span>✦</span><h3>Select a core</h3><p>Left-click any node to inspect its metadata and connections.</p></div>';}
 
 function detailHtml(node,graph,edgeMap){
   const connections=edgeMap.get(node.id)||[];
@@ -61,24 +61,39 @@ export function mountCoreGraph(records){
   const ctx=canvas.getContext('2d');
   let width=1,height=1,ratio=1,zoom=1,panX=0,panY=0;
   let selected=null,hovered=null,relationship='all',searchTerm='';
-  let dragNode=null,panning=false,start=null,last=null,moved=false;
+  let rightPanning=false,last=null;
 
   const worldToScreen=(x,y)=>({x:x*zoom+panX+width/2,y:y*zoom+panY+height/2});
   const screenToWorld=(x,y)=>({x:(x-panX-width/2)/zoom,y:(y-panY-height/2)/zoom});
   const visibleEdges=()=>relationship==='all'?graph.edges:graph.edges.filter((edge)=>edge.relationship===relationship);
 
-  function updateCursor(){canvas.classList.toggle('is-over-node',Boolean(hovered)&&!panning&&!dragNode);canvas.classList.toggle('is-panning',panning);canvas.classList.toggle('is-dragging',Boolean(dragNode));}
+  function updateCursor(){canvas.classList.toggle('is-over-node',Boolean(hovered)&&!rightPanning);canvas.classList.toggle('is-right-panning',rightPanning);}
   function resize(){const rect=stage.getBoundingClientRect();width=Math.max(320,rect.width);height=Math.max(420,rect.height);ratio=Math.min(2,window.devicePixelRatio||1);canvas.width=Math.round(width*ratio);canvas.height=Math.round(height*ratio);canvas.style.width=`${width}px`;canvas.style.height=`${height}px`;ctx.setTransform(ratio,0,0,ratio,0,0);draw();}
   function draw(){ctx.clearRect(0,0,width,height);ctx.save();ctx.lineCap='round';const connected=selected?new Set((edgeMap.get(selected.id)||[]).map(({other})=>other.id)):null;visibleEdges().forEach((edge)=>{const from=nodeById.get(edge.from);const to=nodeById.get(edge.to);if(!from||!to)return;const a=worldToScreen(from.x,from.y);const b=worldToScreen(to.x,to.y);const relation=graph.relationships[edge.relationship]||{color:'#aaa'};const active=selected&&(selected.id===from.id||selected.id===to.id);ctx.globalAlpha=selected?(active?.75:.06):.22;ctx.strokeStyle=relation.color;ctx.lineWidth=active?2:.9;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();});graph.nodes.forEach((node)=>{const point=worldToScreen(node.x,node.y);const matches=!searchTerm||node.name.toLowerCase().includes(searchTerm);const isConnected=!selected||selected.id===node.id||connected?.has(node.id);ctx.globalAlpha=matches&&isConnected?1:.12;ctx.fillStyle=COLORS[node.cluster]||'#888';ctx.beginPath();ctx.arc(point.x,point.y,node.radius*Math.max(.75,zoom),0,Math.PI*2);ctx.fill();if(selected?.id===node.id||hovered?.id===node.id){ctx.strokeStyle='#111';ctx.lineWidth=2;ctx.stroke();}if(zoom>.68||selected?.id===node.id||hovered?.id===node.id||(searchTerm&&matches)){ctx.globalAlpha=matches&&isConnected?.96:.14;ctx.fillStyle='#171717';ctx.font=`${selected?.id===node.id?700:600} ${Math.max(10,Math.min(13,11*zoom))}px Inter, sans-serif`;ctx.fillText(node.name,point.x+node.radius*zoom+5,point.y+4);}});ctx.restore();}
   function nodeAt(clientX,clientY){const rect=canvas.getBoundingClientRect();const x=clientX-rect.left;const y=clientY-rect.top;let best=null;let distance=Infinity;graph.nodes.forEach((node)=>{const point=worldToScreen(node.x,node.y);const current=Math.hypot(point.x-x,point.y-y);if(current<=Math.max(12,node.radius*zoom+5)&&current<distance){best=node;distance=current;}});return best;}
   function selectNode(node,center=false){selected=node||null;detail.innerHTML=node?detailHtml(node,graph,edgeMap):emptyDetail();detail.querySelectorAll('[data-graph-node]').forEach((button)=>button.addEventListener('click',()=>selectNode(nodeById.get(button.dataset.graphNode),true)));if(node&&center){panX=-node.x*zoom;panY=-node.y*zoom;}draw();}
   function fitGraph(){if(!graph.nodes.length)return;const xs=graph.nodes.map((node)=>node.x);const ys=graph.nodes.map((node)=>node.y);const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);const spanX=Math.max(1,maxX-minX),spanY=Math.max(1,maxY-minY);const cx=(minX+maxX)/2,cy=(minY+maxY)/2;zoom=Math.min(1.15,Math.max(.32,Math.min((width-120)/spanX,(height-120)/spanY)));panX=-cx*zoom;panY=-cy*zoom;draw();}
 
-  canvas.addEventListener('pointerdown',(event)=>{canvas.setPointerCapture(event.pointerId);dragNode=nodeAt(event.clientX,event.clientY);panning=!dragNode;start={x:event.clientX,y:event.clientY};last={...start};moved=false;if(dragNode)selectNode(dragNode);updateCursor();});
-  canvas.addEventListener('pointermove',(event)=>{hovered=nodeAt(event.clientX,event.clientY);if(last){const dx=event.clientX-last.x;const dy=event.clientY-last.y;if(Math.hypot(event.clientX-start.x,event.clientY-start.y)>4)moved=true;if(dragNode){const rect=canvas.getBoundingClientRect();const world=screenToWorld(event.clientX-rect.left,event.clientY-rect.top);dragNode.x=world.x;dragNode.y=world.y;}else if(panning){panX+=dx;panY+=dy;}last={x:event.clientX,y:event.clientY};}updateCursor();draw();});
-  function endPointer(event){const wasBlank=!dragNode;if(wasBlank&&!moved)selectNode(null);try{canvas.releasePointerCapture(event.pointerId);}catch{}dragNode=null;panning=false;start=null;last=null;moved=false;hovered=nodeAt(event.clientX,event.clientY);updateCursor();draw();}
-  canvas.addEventListener('pointerup',endPointer);canvas.addEventListener('pointercancel',endPointer);canvas.addEventListener('pointerleave',()=>{if(!panning&&!dragNode){hovered=null;updateCursor();draw();}});
-  canvas.addEventListener('dblclick',(event)=>{const node=nodeAt(event.clientX,event.clientY);if(node)location.href=pageUrl(node.name);});
+  canvas.addEventListener('contextmenu',(event)=>event.preventDefault());
+  canvas.addEventListener('pointerdown',(event)=>{
+    if(event.button===0){const node=nodeAt(event.clientX,event.clientY);selectNode(node||null);return;}
+    if(event.button!==2)return;
+    event.preventDefault();
+    rightPanning=true;
+    last={x:event.clientX,y:event.clientY};
+    try{canvas.setPointerCapture(event.pointerId);}catch{}
+    updateCursor();
+  });
+  canvas.addEventListener('pointermove',(event)=>{
+    hovered=nodeAt(event.clientX,event.clientY);
+    if(rightPanning&&last){panX+=event.clientX-last.x;panY+=event.clientY-last.y;last={x:event.clientX,y:event.clientY};}
+    updateCursor();draw();
+  });
+  function endRightPan(event){if(event.button!==2&&rightPanning===false)return;rightPanning=false;last=null;try{canvas.releasePointerCapture(event.pointerId);}catch{}hovered=nodeAt(event.clientX,event.clientY);updateCursor();draw();}
+  canvas.addEventListener('pointerup',endRightPan);
+  canvas.addEventListener('pointercancel',()=>{rightPanning=false;last=null;updateCursor();draw();});
+  canvas.addEventListener('pointerleave',()=>{if(!rightPanning){hovered=null;updateCursor();draw();}});
+  canvas.addEventListener('dblclick',(event)=>{if(event.button!==0)return;const node=nodeAt(event.clientX,event.clientY);if(node)location.href=pageUrl(node.name);});
   canvas.addEventListener('wheel',(event)=>{event.preventDefault();const rect=canvas.getBoundingClientRect();const x=event.clientX-rect.left;const y=event.clientY-rect.top;const before=screenToWorld(x,y);zoom=Math.max(.28,Math.min(2.4,zoom*(event.deltaY>0?.9:1.1)));panX=x-width/2-before.x*zoom;panY=y-height/2-before.y*zoom;draw();},{passive:false});
   search?.addEventListener('input',()=>{searchTerm=search.value.toLowerCase().trim();const match=searchTerm?(graph.nodes.find((node)=>node.name.toLowerCase()===searchTerm)||graph.nodes.find((node)=>node.name.toLowerCase().startsWith(searchTerm))):null;if(match)selectNode(match,true);draw();});
   relationshipSelect?.addEventListener('change',()=>{relationship=relationshipSelect.value;draw();});
