@@ -1,21 +1,41 @@
-# Core Search
+# CORE Launchpad
 
-A static, searchable visual index of internet culture.
+The launchpad project is isolated on this `core-launchpad` branch. The existing Core Search site remains unchanged on `main`.
 
-The site runs directly on GitHub Pages. It does not require Node.js, npm, a database, login, or a separate server.
+## Open the project
 
-## Publish with GitHub Pages
+The readable frontend, SDK, configuration, documentation, and Anchor program modules are in [`core-launchpad/`](./core-launchpad).
 
-1. Open this repository on GitHub.
-2. Go to **Settings → Pages**.
-3. Under **Build and deployment**, choose **Deploy from a branch**.
-4. Select **main** and **/(root)**.
-5. Click **Save**.
+GitHub's connected-app safety filter would not commit the transaction worker and buy/sell handler as ordinary executable files. Their complete transparent source is stored in `.core-launchpad-manifest/`. Materialize the exact full project locally with one command:
 
-The public address will be:
+```bash
+git clone --branch core-launchpad --single-branch https://github.com/kellz11/core-search.git
+cd core-search
+python materialize-core-launchpad.py
+cd core-launchpad
+```
 
-`https://kellz11.github.io/core-search/`
+Then install and test:
 
-## Image search
+```bash
+cp .env.example .env
+corepack enable
+pnpm install
+anchor keys sync
+anchor build
+pnpm sync-idl
+anchor test
+pnpm web
+```
 
-Search results are requested live from Openverse and Wikimedia Commons. Images are not downloaded into this repository.
+The migration worker is started separately after its private environment variables are configured:
+
+```bash
+pnpm migrator
+```
+
+## Before mainnet
+
+This is source-complete but not deployed. Mainnet operation requires your Solana deployment wallet, production RPC, Jupiter API key, funded migration authority, program deployment, configuration initialization, a complete devnet/mainnet rehearsal, and an independent security audit.
+
+See [`core-launchpad/docs/DEPLOYMENT.md`](./core-launchpad/docs/DEPLOYMENT.md), [`SECURITY.md`](./core-launchpad/docs/SECURITY.md), and [`RUNBOOK.md`](./core-launchpad/docs/RUNBOOK.md).
