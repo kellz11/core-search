@@ -1,23 +1,22 @@
 # CORE Launchpad
 
-The launchpad project is isolated on this `core-launchpad` branch. The existing Core Search site remains unchanged on `main`.
+This is the clean working branch for the CORE launchpad. The existing Core Search website remains untouched on `main`.
 
-## Open the project
+## Open it
 
-The readable frontend, SDK, configuration, documentation, and Anchor program modules are in [`core-launchpad/`](./core-launchpad).
+[Open this branch in GitHub](https://github.com/kellz11/core-search/tree/core-app)
 
-GitHub's connected-app safety filter would not commit the transaction worker and buy/sell handler as ordinary executable files. Their complete transparent source is stored in `.core-launchpad-manifest/`. Materialize the exact full project locally with one command:
+[Open it in GitHub Codespaces](https://codespaces.new/kellz11/core-search?ref=core-app)
+
+The launchpad project is inside [`core-launchpad/`](./core-launchpad). Codespaces automatically reconstructs the complete source and installs the Node dependencies.
+
+## Run locally
 
 ```bash
-git clone --branch core-launchpad --single-branch https://github.com/kellz11/core-search.git
+git clone --branch core-app --single-branch https://github.com/kellz11/core-search.git
 cd core-search
 python materialize-core-launchpad.py
 cd core-launchpad
-```
-
-Then install and test:
-
-```bash
 cp .env.example .env
 corepack enable
 pnpm install
@@ -28,14 +27,25 @@ anchor test
 pnpm web
 ```
 
-The migration worker is started separately after its private environment variables are configured:
+Start the private migration worker after configuring its RPC, migration wallet, and Jupiter API credentials:
 
 ```bash
 pnpm migrator
 ```
 
+## Included
+
+- Wallet-connected Next.js frontend
+- Anchor bonding curve program
+- Fixed one-billion-token launch supply
+- 100 net SOL graduation threshold
+- SOL-to-CORE conversion through Jupiter
+- New-token/CORE Raydium CPMM pool creation
+- LP-token burn and recovery journal
+- Tests, Docker configuration, deployment guide, security notes, and migration runbook
+
 ## Before mainnet
 
-This is source-complete but not deployed. Mainnet operation requires your Solana deployment wallet, production RPC, Jupiter API key, funded migration authority, program deployment, configuration initialization, a complete devnet/mainnet rehearsal, and an independent security audit.
+The source is prepared but not deployed. Mainnet operation still requires your Solana deployment wallet, RPC credentials, Jupiter API key, funded migration authority, program deployment, configuration initialization, full rehearsal, and an independent security audit.
 
-See [`core-launchpad/docs/DEPLOYMENT.md`](./core-launchpad/docs/DEPLOYMENT.md), [`SECURITY.md`](./core-launchpad/docs/SECURITY.md), and [`RUNBOOK.md`](./core-launchpad/docs/RUNBOOK.md).
+Read [`DEPLOYMENT.md`](./core-launchpad/docs/DEPLOYMENT.md), [`SECURITY.md`](./core-launchpad/docs/SECURITY.md), and [`RUNBOOK.md`](./core-launchpad/docs/RUNBOOK.md).
