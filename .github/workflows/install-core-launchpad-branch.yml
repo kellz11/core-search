@@ -1,0 +1,85 @@
+name: Install CORE launchpad branch
+
+on:
+  pull_request_target:
+    types:
+      - opened
+
+permissions:
+  contents: write
+
+jobs:
+  install:
+    if: github.event.pull_request.head.ref == 'core-launchpad-trigger' && github.event.pull_request.base.ref == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: core-launchpad
+          fetch-depth: 0
+
+      - name: Reconstruct standalone launchpad
+        shell: bash
+        run: |
+          python <<'PY'
+          import json
+          import shutil
+          from pathlib import Path
+
+          grouped = {}
+          for manifest in sorted(Path('.core-launchpad-manifest').glob('*')):
+              if not manifest.is_file():
+                  continue
+              for line in manifest.read_text(encoding='utf-8').splitlines():
+                  if not line.strip():
+                      continue
+                  for chunk in json.loads(line)['chunks']:
+                      grouped.setdefault(chunk['path'], {})[int(chunk['index'])] = chunk['content']
+
+          if not grouped:
+              raise SystemExit('No source chunks found')
+
+          temp = Path('/tmp/core-launchpad-tree')
+          if temp.exists():
+              shutil.rmtree(temp)
+          temp.mkdir(parents=True)
+
+          for relative_path, chunks in grouped.items():
+              indexes = sorted(chunks)
+              if indexes != list(range(indexes[-1] + 1)):
+                  raise SystemExit(f'Missing chunks for {relative_path}: {indexes}')
+              target = temp / relative_path
+              target.parent.mkdir(parents=True, exist_ok=True)
+              target.write_text(''.join(chunks[index] for index in indexes), encoding='utf-8')
+
+          for child in Path('.').iterdir():
+              if child.name == '.git':
+                  continue
+              if child.is_dir():
+                  shutil.rmtree(child)
+              else:
+                  child.unlink()
+
+          for child in temp.iterdir():
+              destination = Path('.') / child.name
+              if child.is_dir():
+                  shutil.copytree(child, destination)
+              else:
+                  shutil.copy2(child, destination)
+          PY
+
+      - name: Validate and commit
+        run: |
+          test -f README.md
+          test -f programs/core-launchpad/src/lib.rs
+          test -f apps/web/package.json
+          test -f services/migrator/src/migrate.ts
+          python -m json.tool package.json >/dev/null
+          python -m json.tool apps/web/src/idl/core_launchpad.json >/dev/null
+          python -m json.tool packages/sdk/src/idl/core_launchpad.json >/dev/null
+          python -m json.tool services/migrator/src/idl/core_launchpad.json >/dev/null
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Install standalone CORE launchpad"
+          git push origin HEAD:core-launchpad
