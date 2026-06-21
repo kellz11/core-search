@@ -1,0 +1,22 @@
+[toolchain]
+anchor_version = "0.31.1"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+core_launchpad = "Fg6PaFpoGXkYsidMpWxTWqkZVY6W2BeZ7FEfcYkgMQhg"
+
+[programs.devnet]
+core_launchpad = "Fg6PaFpoGXkYsidMpWxTWqkZVY6W2BeZ7FEfcYkgMQhg"
+
+[programs.mainnet]
+core_launchpad = "Fg6PaFpoGXkYsidMpWxTWqkZVY6W2BeZ7FEfcYkgMQhg"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "pnpm tsx tests/core-launchpad.ts"

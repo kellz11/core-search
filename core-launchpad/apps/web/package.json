@@ -1,0 +1,32 @@
+{
+  "name": "@core-launchpad/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "0.31.1",
+    "@core-launchpad/sdk": "workspace:*",
+    "@metaplex-foundation/mpl-token-metadata": "2.13.0",
+    "@solana/spl-token": "0.4.13",
+    "@solana/wallet-adapter-base": "0.9.27",
+    "@solana/wallet-adapter-react": "0.15.35",
+    "@solana/wallet-adapter-react-ui": "0.9.35",
+    "@solana/wallet-adapter-wallets": "0.19.33",
+    "@solana/web3.js": "1.98.4",
+    "bn.js": "5.2.2",
+    "next": "15.2.4",
+    "react": "19.0.0",
+    "react-dom": "19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.13.14",
+    "@types/react": "19.0.12",
+    "@types/react-dom": "19.0.4",
+    "typescript": "5.8.3"
+  }
+}

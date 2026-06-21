@@ -1,0 +1,27 @@
+{
+  "name": "core-launchpad",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@9.15.5",
+  "scripts": {
+    "build": "pnpm --filter @core-launchpad/web build && pnpm --filter @core-launchpad/migrator build",
+    "dev": "pnpm --parallel --filter @core-launchpad/web --filter @core-launchpad/migrator dev",
+    "web": "pnpm --filter @core-launchpad/web dev",
+    "migrator": "pnpm --filter @core-launchpad/migrator dev",
+    "anchor:build": "anchor build && pnpm sync-idl",
+    "anchor:test": "anchor test",
+    "sync-idl": "node scripts/sync-idl.mjs",
+    "typecheck": "pnpm -r typecheck",
+    "grind:mint": "tsx tools/grind-pump-mint.ts"
+  },
+  "devDependencies": {
+    "@coral-xyz/anchor": "0.31.1",
+    "@nirholas/pump-sdk": "^1.32.0",
+    "@solana/spl-token": "0.4.13",
+    "@solana/web3.js": "1.98.4",
+    "bs58": "6.0.0",
+    "dotenv": "16.4.7",
+    "tsx": "4.19.3",
+    "typescript": "5.8.3"
+  }
+}
