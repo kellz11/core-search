@@ -1,25 +1,111 @@
 import { normalize } from './core-data.js';
 
 export const RELATIONSHIPS = {
-  category_parent: { label: 'Category parent', color: '#9a9a96' },
+  category_parent: { label: 'Cluster hub', color: '#9a9a96' },
   visual_overlap: { label: 'Visual overlap', color: '#5c7cfa' },
   emotional_overlap: { label: 'Emotional overlap', color: '#d95f9f' },
   historical_influence: { label: 'Historical influence', color: '#d98b35' },
   search_overlap: { label: 'Search overlap', color: '#38a37a' },
-  sibling: { label: 'Sibling', color: '#7d62c9' }
+  sibling: { label: 'Adjacent formation', color: '#7d62c9' }
 };
 
 const CLUSTERS = [
-  { id: 'dream-surreal', hub: 'Dreamcore', label: 'Dream & surreal', keywords: ['dreams','nostalgia','surreal','liminal'], visuals: ['empty rooms','doors','clouds','soft light'], emotions: ['wonder','unease','nostalgia'], era: 'late 2010s / early 2020s', names: ['Dreamcore','Weirdcore','Nostalgiacore','Traumacore','Glitchcore','Gloomcore','Cloudcore','Poolcore','Plazacore','Soft Apocalypse','Ghostcore'] },
-  { id: 'nature-rustic', hub: 'Naturecore', label: 'Nature & rustic', keywords: ['nature','rural','organic','handmade'], visuals: ['forests','gardens','cabins','mushrooms'], emotions: ['calm','comfort','curiosity'], era: '2010s / 2020s', names: ['Naturecore','Cottagecore','Goblincore','Frogcore','Mushroomcore','Gardencore','Bloomcore','Honeycore','Cabincore','Picniccore','Crowcore','Gorpcore','Adventurecore','Junglecore','Tropicalcore','Grandmacore','Craftcore','Cluttercore'] },
-  { id: 'cute-playful', hub: 'Kidcore', label: 'Cute & playful', keywords: ['cute','playful','childhood','colorful'], visuals: ['toys','pastels','cartoons','stickers'], emotions: ['joy','comfort','nostalgia'], era: '2010s / 2020s', names: ['Kidcore','Cutecore','Babycore','Candycore','Sanriocore','Kuromicore','Lolicore','Puppycore','Dollcore','Barbiecore','Melodycore','Clowncore'] },
-  { id: 'digital-internet', hub: 'Webcore', label: 'Digital & internet', keywords: ['internet','digital','software','retro web'], visuals: ['screens','interfaces','pixels','chrome'], emotions: ['curiosity','energy','nostalgia'], era: '1990s roots / 2010s revival', names: ['Webcore','Cybercore','Chromecore','Arcadecore','Retro Gamer','Robotcore','Scenecore','Nerdcore','Animecore'] },
-  { id: 'fantasy-mythic', hub: 'Fairycore', label: 'Fantasy & mythic', keywords: ['fantasy','myth','magic','royalty'], visuals: ['castles','wings','crowns','forests'], emotions: ['wonder','power','romance'], era: 'timeless / internet revival', names: ['Fairycore','Angelcore','Fallen Angel','Devilcore','Witchcore','Wizardcore','Dragoncore','Knightcore','Royalcore','Kingcore','Queencore','Princecore','Princesscore','Goddesscore','Changelingcore','Bardcore'] },
-  { id: 'dark-horror', hub: 'Horrorcore', label: 'Dark & horror', keywords: ['horror','macabre','body','danger'], visuals: ['shadows','medical objects','ruins','dark interiors'], emotions: ['fear','dread','fascination'], era: '2010s / 2020s', names: ['Horrorcore','Gorecore','Meatcore','Medicalcore','Teethcore','Plaguecore','Cryptidcore','Dark Nautical','Heistcore'] },
-  { id: 'fashion-identity', hub: 'Fashioncore', label: 'Fashion & identity', keywords: ['fashion','identity','style','subculture'], visuals: ['clothing','editorials','accessories','portraits'], emotions: ['confidence','belonging','expression'], era: '2010s / 2020s', names: ['Fashioncore','Balletcore','Bimbocore','Blokecore','Normcore','Pridecore','Queercore','Maidcore','Pearlcore','Artcore','Lovecore'] },
-  { id: 'cosmic-futurist', hub: 'Spacecore', label: 'Cosmic & futurist', keywords: ['space','future','science','alien'], visuals: ['stars','planets','auroras','spacecraft'], emotions: ['awe','isolation','curiosity'], era: 'mid-century roots / internet revival', names: ['Spacecore','Aliencore','Auroracore','Paleocore'] },
-  { id: 'lifestyle-sport', hub: 'Campcore', label: 'Lifestyle & sport', keywords: ['activity','lifestyle','sport','routine'], visuals: ['equipment','outdoors','uniforms','clean spaces'], emotions: ['focus','energy','belonging'], era: '2010s / 2020s', names: ['Campcore','Tenniscore','Cleancore'] },
-  { id: 'hope-emotion', hub: 'Hopecore', label: 'Hope & emotion', keywords: ['hope','life','emotion','optimism'], visuals: ['sunlight','people','open landscapes','small moments'], emotions: ['hope','relief','connection'], era: 'early 2020s', names: ['Hopecore'] }
+  {
+    id: 'dream-surreal', hub: 'Dreamcore', label: 'Dream, memory & liminality',
+    keywords: ['dream', 'memory', 'liminal', 'surreal'],
+    visuals: ['empty rooms', 'thresholds', 'haze', 'uncanny light'],
+    emotions: ['nostalgia', 'wonder', 'unease'], era: 'internet-native / retrospective',
+    names: ['Dreamcore','Weirdcore','Nostalgiacore','Traumacore','Glitchcore','Gloomcore','Cloudcore','Poolcore','Plazacore','Soft Apocalypse','Ghostcore','Liminalcore','Backroomscore','Memorycore','Sleepcore','Nightmarecore','Voidcore','Sadcore','Surrealcore'],
+    patterns: ['dream','weird','nostalgia','trauma','glitch','gloom','cloud','pool','plaza','apocalypse','ghost','liminal','backroom','memory','sleep','nightmare','void','sad','surreal','haze']
+  },
+  {
+    id: 'nature-rustic', hub: 'Naturecore', label: 'Nature, pastoral & ecological',
+    keywords: ['nature', 'rural', 'organic', 'ecological'],
+    visuals: ['forests', 'gardens', 'cabins', 'plants'],
+    emotions: ['calm', 'comfort', 'curiosity'], era: 'historic roots / internet reassembly',
+    names: ['Naturecore','Cottagecore','Goblincore','Frogcore','Mushroomcore','Gardencore','Bloomcore','Honeycore','Cabincore','Picniccore','Crowcore','Gorpcore','Adventurecore','Junglecore','Tropicalcore','Grandmacore','Craftcore','Cluttercore','Forestcore','Swampcore','Farmcore','Raincore','Autumncore','Wintercore'],
+    patterns: ['nature','cottage','goblin','frog','mushroom','garden','bloom','honey','cabin','picnic','crow','gorp','adventure','jungle','tropical','grandma','craft','clutter','forest','swamp','farm','rain','autumn','winter','plant','flower','eco','rural']
+  },
+  {
+    id: 'cute-playful', hub: 'Kidcore', label: 'Childhood, cute & playful',
+    keywords: ['childhood', 'cute', 'play', 'character'],
+    visuals: ['toys', 'pastels', 'cartoons', 'stickers'],
+    emotions: ['joy', 'comfort', 'nostalgia'], era: 'childhood memory / platform culture',
+    names: ['Kidcore','Cutecore','Babycore','Candycore','Sanriocore','Kuromicore','Lolicore','Puppycore','Dollcore','Barbiecore','Melodycore','Clowncore','Toycore','Rainbowcore','Cartooncore'],
+    patterns: ['kid','cute','baby','candy','sanrio','kuromi','loli','puppy','doll','barbie','melody','clown','toy','rainbow','cartoon','kawaii','pastel','child']
+  },
+  {
+    id: 'digital-internet', hub: 'Webcore', label: 'Digital, web & synthetic',
+    keywords: ['internet', 'digital', 'software', 'synthetic'],
+    visuals: ['screens', 'interfaces', 'pixels', 'chrome'],
+    emotions: ['curiosity', 'energy', 'digital nostalgia'], era: '1990s roots / networked revival',
+    names: ['Webcore','Cybercore','Chromecore','Arcadecore','Retro Gamer','Robotcore','Scenecore','Nerdcore','Animecore','Old Web Core','Y2K Core','Frutiger Aero','Vaporwave Core','Corecore','Memecore','Viralcore','Tiktokcore','Twittercore','X Core','Redditcore'],
+    patterns: ['web','cyber','chrome','arcade','gamer','robot','scene','nerd','anime','old web','oldweb','y2k','frutiger','vaporwave','synthwave','retrowave','corecore','meme','viral','tiktok','twitter','reddit','internet','digital','pixel','computer','windows','tech']
+  },
+  {
+    id: 'fantasy-mythic', hub: 'Fairycore', label: 'Fantasy, myth & spiritual worlds',
+    keywords: ['fantasy', 'myth', 'magic', 'spiritual'],
+    visuals: ['castles', 'wings', 'crowns', 'enchanted forests'],
+    emotions: ['wonder', 'power', 'romance'], era: 'mythic roots / internet recombination',
+    names: ['Fairycore','Angelcore','Fallen Angel','Devilcore','Witchcore','Wizardcore','Dragoncore','Knightcore','Royalcore','Kingcore','Queencore','Princecore','Princesscore','Goddesscore','Changelingcore','Bardcore','Mermaidcore','Heavencore'],
+    patterns: ['fairy','angel','devil','witch','wizard','dragon','knight','royal','king','queen','prince','princess','goddess','changeling','bard','mermaid','heaven','elf','magic','myth','fantasy','spirit']
+  },
+  {
+    id: 'dark-horror', hub: 'Horrorcore', label: 'Dark, horror & bodily',
+    keywords: ['horror', 'macabre', 'body', 'danger'],
+    visuals: ['shadows', 'medical objects', 'ruins', 'dark interiors'],
+    emotions: ['fear', 'dread', 'fascination'], era: 'historic horror / internet mutation',
+    names: ['Horrorcore','Gorecore','Meatcore','Medicalcore','Teethcore','Plaguecore','Cryptidcore','Dark Nautical','Heistcore','Hospitalcore','Vampcore','Goth Core'],
+    patterns: ['horror','gore','meat','medical','teeth','plague','cryptid','dark nautical','heist','hospital','vamp','goth','death','blood','corpse','occult','demon']
+  },
+  {
+    id: 'fashion-identity', hub: 'Fashioncore', label: 'Fashion, identity & social style',
+    keywords: ['fashion', 'identity', 'style', 'subculture'],
+    visuals: ['clothing', 'editorials', 'accessories', 'portraits'],
+    emotions: ['confidence', 'belonging', 'expression'], era: 'subcultural roots / algorithmic styling',
+    names: ['Fashioncore','Balletcore','Bimbocore','Blokecore','Normcore','Pridecore','Queercore','Maidcore','Pearlcore','Artcore','Lovecore','Coquette Core','Clean Core','Messy Core','Trash Core','Romantic Core','Emo Core','Punk Core'],
+    patterns: ['fashion','ballet','bimbo','bloke','norm','pride','queer','maid','pearl','art','love','coquette','clean','messy','trash','romantic','emo','punk','style','girl','boy','beauty','model']
+  },
+  {
+    id: 'cosmic-futurist', hub: 'Spacecore', label: 'Cosmic, scientific & futurist',
+    keywords: ['space', 'future', 'science', 'alien'],
+    visuals: ['stars', 'planets', 'auroras', 'spacecraft'],
+    emotions: ['awe', 'isolation', 'curiosity'], era: 'scientific imagination / internet revival',
+    names: ['Spacecore','Aliencore','Auroracore','Paleocore','Starcore','Mooncore','Suncore','Solarpunk Core','Steampunk Core','Seapunk Core'],
+    patterns: ['space','alien','aurora','paleo','star','moon','sun','solar','future','cosmic','planet','astro','sci fi','scifi','steampunk','seapunk']
+  },
+  {
+    id: 'archive-creative', hub: 'Archivecore', label: 'Archive, knowledge & creative practice',
+    keywords: ['archive', 'writing', 'knowledge', 'making'],
+    visuals: ['books', 'paper', 'collections', 'workspaces'],
+    emotions: ['reflection', 'curiosity', 'devotion'], era: 'historic practices / digital indexing',
+    names: ['Archive Core','Library Core','Museum Core','Journal Core','Letter Core','Diary Core','Poet Core','Writer Core','Minimal Core','Maximal Core','Quiet Core','Loud Core'],
+    patterns: ['archive','library','museum','journal','letter','diary','poet','writer','minimal','maximal','quiet','loud','book','study','academia','academic','history','retro','analog','film']
+  },
+  {
+    id: 'lifestyle-sport', hub: 'Campcore', label: 'Lifestyle, activity & place',
+    keywords: ['activity', 'lifestyle', 'sport', 'routine'],
+    visuals: ['equipment', 'outdoors', 'uniforms', 'everyday spaces'],
+    emotions: ['focus', 'energy', 'belonging'], era: 'lived practice / aesthetic packaging',
+    names: ['Campcore','Tenniscore','Cleancore','Officecore','Schoolcore'],
+    patterns: ['camp','tennis','sport','office','school','work','gym','fitness','travel','airport','mall','hotel','beach','city','suburb','home','room','food','coffee']
+  },
+  {
+    id: 'hope-emotion', hub: 'Hopecore', label: 'Emotion, healing & meaning',
+    keywords: ['hope', 'life', 'emotion', 'healing'],
+    visuals: ['sunlight', 'people', 'open landscapes', 'small moments'],
+    emotions: ['hope', 'relief', 'connection'], era: 'early 2020s / affective publics',
+    names: ['Hopecore','Lifecore','Comfortcore','Healing Core','Mindful Core','Softcore','Lightcore','Emocore'],
+    patterns: ['hope','life','comfort','healing','mindful','soft','light','emotion','feeling','peace','happy','joy','calm','wellness']
+  },
+  {
+    id: 'persona-character', hub: 'Dollcore', label: 'Persona, role & character',
+    keywords: ['persona', 'role', 'character', 'archetype'],
+    visuals: ['figures', 'costumes', 'avatars', 'symbols'],
+    emotions: ['identification', 'projection', 'belonging'], era: 'archetypal roots / profile culture',
+    names: ['Aliyahcore'],
+    patterns: ['aliyah','character','persona','avatar','hero','villain','cowboy','pirate','samurai','warrior','clown','doll']
+  }
 ];
 
 const DESCRIPTIONS = {
@@ -35,100 +121,105 @@ const DESCRIPTIONS = {
   Horrorcore: 'A dark aesthetic family using horror imagery, suspense, decay, and unsettling environments.',
   Fashioncore: 'An umbrella for aesthetics primarily expressed through clothing, styling, accessories, and fashion identity.',
   Spacecore: 'A cosmic aesthetic centered on stars, planets, astronomy, spacecraft, and the scale of the universe.',
-  Hopecore: 'An emotional internet aesthetic that uses ordinary moments, people, and nature to communicate hope and perseverance.'
+  Hopecore: 'An emotional internet aesthetic that uses ordinary moments, people, and nature to communicate hope and perseverance.',
+  Corecore: 'A reflexive internet collage aesthetic that turns networked life, emotion, media overload, and cultural fatigue back onto themselves.'
 };
 
 const CURATED_EDGES = [
   ['Dreamcore','Weirdcore','sibling','Both use surreal internet imagery and unsettling nostalgia.'],
   ['Dreamcore','Nostalgiacore','emotional_overlap','Both rely on memory, childhood feeling, and emotional ambiguity.'],
   ['Dreamcore','Poolcore','visual_overlap','Pools, blue light, emptiness, and dreamlike architecture overlap strongly.'],
-  ['Dreamcore','Plazacore','visual_overlap','Both use empty public architecture and unreal transitional spaces.'],
-  ['Dreamcore','Cloudcore','visual_overlap','Soft skies, clouds, and unreal light frequently appear in both.'],
   ['Dreamcore','Traumacore','emotional_overlap','Both transform memory and vulnerability into symbolic internet imagery.'],
-  ['Weirdcore','Glitchcore','visual_overlap','Digital distortion, compression, and broken interfaces connect the two.'],
-  ['Weirdcore','Horrorcore','search_overlap','People exploring uncanny internet aesthetics often move between these two.'],
-  ['Nostalgiacore','Retro Gamer','historical_influence','Older games and media are major sources of nostalgic internet imagery.'],
+  ['Weirdcore','Glitchcore','visual_overlap','Digital distortion and broken interfaces connect the two.'],
   ['Webcore','Cybercore','sibling','Both are internet-native digital aesthetics with different levels of futurism.'],
-  ['Webcore','Retro Gamer','historical_influence','Early web and game graphics share the same digital design history.'],
-  ['Webcore','Scenecore','historical_influence','Scene culture grew through social profiles, graphics, and early social web design.'],
-  ['Cybercore','Chromecore','visual_overlap','Metallic surfaces, interfaces, and machine-like polish overlap.'],
-  ['Arcadecore','Retro Gamer','sibling','Both center old games, cabinets, pixel graphics, and gaming nostalgia.'],
-  ['Animecore','Scenecore','search_overlap','Online youth subcultures frequently combine anime imagery with scene styling.'],
-  ['Animecore','Sanriocore','search_overlap','Cute character culture and anime-adjacent fandom overlap strongly.'],
-  ['Cottagecore','Goblincore','sibling','Both use rural environments, collecting, and natural objects with different moods.'],
+  ['Webcore','Scenecore','historical_influence','Scene culture grew through profiles, graphics, and early social-web design.'],
+  ['Cottagecore','Goblincore','sibling','Both use rural environments and natural objects with different moods.'],
   ['Cottagecore','Grandmacore','visual_overlap','Domestic craft, vintage interiors, baking, and handmade objects connect them.'],
-  ['Cottagecore','Picniccore','visual_overlap','Outdoor meals, fields, baskets, and pastoral leisure overlap.'],
   ['Goblincore','Mushroomcore','visual_overlap','Mushrooms, moss, forest floors, and collected natural objects overlap.'],
-  ['Goblincore','Crowcore','visual_overlap','Both value dark natural objects, collecting, and overlooked creatures.'],
-  ['Naturecore','Adventurecore','search_overlap','People exploring outdoor aesthetics often move between scenic nature and exploration.'],
-  ['Adventurecore','Gorpcore','visual_overlap','Outdoor equipment, technical clothing, and exploration imagery connect them.'],
-  ['Gardencore','Bloomcore','visual_overlap','Flowers, gardens, and cultivation are central to both.'],
-  ['Frogcore','Mushroomcore','search_overlap','Both are popular cute forest micro-aesthetics.'],
   ['Kidcore','Cutecore','sibling','Both use bright playful imagery, toys, characters, and comfort.'],
   ['Kidcore','Nostalgiacore','emotional_overlap','Childhood objects and memories drive both aesthetics.'],
-  ['Sanriocore','Kuromicore','category_parent','Kuromicore is a darker character-specific branch of Sanrio-inspired imagery.'],
-  ['Babycore','Dollcore','visual_overlap','Nursery imagery, dolls, softness, and childlike styling connect them.'],
-  ['Candycore','Barbiecore','visual_overlap','Bright pink color, plastic shine, and playful consumer imagery overlap.'],
   ['Fairycore','Cottagecore','visual_overlap','Flowers, woodland settings, handmade detail, and romantic nature connect them.'],
   ['Fairycore','Witchcore','sibling','Both use magic and nature, but with different emotional tones.'],
-  ['Witchcore','Wizardcore','sibling','Both organize fantasy around magic, ritual, and knowledge.'],
-  ['Royalcore','Kingcore','category_parent','Kingcore is a role-specific branch within royal imagery.'],
-  ['Royalcore','Queencore','category_parent','Queencore is a role-specific branch within royal imagery.'],
-  ['Royalcore','Princecore','category_parent','Princecore is a role-specific branch within royal imagery.'],
-  ['Royalcore','Princesscore','category_parent','Princesscore is a role-specific branch within royal imagery.'],
-  ['Knightcore','Dragoncore','search_overlap','Medieval fantasy exploration frequently pairs knights and dragons.'],
-  ['Angelcore','Fallen Angel','historical_influence','Fallen Angel reinterprets angelic imagery through loss, rebellion, and darkness.'],
-  ['Fallen Angel','Devilcore','emotional_overlap','Both use transgression, darkness, and spiritual symbolism.'],
   ['Horrorcore','Medicalcore','visual_overlap','Clinical imagery becomes unsettling when placed in a horror context.'],
-  ['Medicalcore','Meatcore','visual_overlap','Anatomy, body material, and clinical or biological imagery overlap.'],
-  ['Plaguecore','Medicalcore','historical_influence','Disease history and medical imagery directly connect the two.'],
-  ['Cryptidcore','Crowcore','search_overlap','Folklore creatures and ominous nature imagery attract similar users.'],
-  ['Dark Nautical','Ghostcore','visual_overlap','Fog, abandoned ships, deep water, and haunting atmosphere overlap.'],
   ['Pridecore','Queercore','emotional_overlap','Both center identity, belonging, expression, and queer community.'],
-  ['Balletcore','Pearlcore','visual_overlap','Soft luxury, pale tones, delicate accessories, and elegance connect them.'],
-  ['Lovecore','Pridecore','emotional_overlap','Both use emotion, affection, identity, and symbolic color.'],
   ['Spacecore','Aliencore','sibling','Both center extraterrestrial settings, science fiction, and cosmic scale.'],
-  ['Spacecore','Auroracore','visual_overlap','Night skies, luminous color, and atmospheric phenomena overlap.'],
-  ['Spacecore','Robotcore','search_overlap','Science-fiction searches frequently connect space and robotics.'],
-  ['Paleocore','Naturecore','historical_influence','Paleocore extends nature aesthetics into prehistoric life and deep time.'],
   ['Hopecore','Naturecore','emotional_overlap','Open landscapes and small natural moments often communicate hope.'],
   ['Hopecore','Nostalgiacore','emotional_overlap','Both use emotionally charged ordinary memories, but with different direction.'],
-  ['Campcore','Adventurecore','visual_overlap','Outdoor activity, tents, communal spaces, and exploration overlap.'],
-  ['Tenniscore','Blokecore','search_overlap','Sport-centered fashion and identity connect athletic aesthetics.'],
-  ['Cleancore','Normcore','visual_overlap','Minimal ordinary environments and restrained styling overlap.'],
-  ['Cluttercore','Craftcore','visual_overlap','Layered objects, collections, handmade items, and personal spaces connect them.'],
-  ['Artcore','Craftcore','sibling','Both center making, materials, and creative self-expression.'],
-  ['Clowncore','Weirdcore','visual_overlap','Bright theatrical imagery becomes uncanny in both aesthetics.']
+  ['Corecore','Webcore','historical_influence','Corecore is shaped by the media density and self-reference of networked culture.'],
+  ['Corecore','Hopecore','emotional_overlap','Both organize short-form media around collective feeling, but with different tonal centers.'],
+  ['Archive Core','Nostalgiacore','historical_influence','Archives convert cultural remnants into retrievable memory.'],
+  ['Fashioncore','Pridecore','search_overlap','Identity and style are frequently discovered together through platform search.'],
+  ['Naturecore','Spacecore','visual_overlap','Both produce scale, wonder, and environments larger than the individual.']
 ];
 
+const CROSS_CLUSTER_BRIDGES = [
+  ['Dreamcore','Webcore','historical_influence'],
+  ['Dreamcore','Horrorcore','emotional_overlap'],
+  ['Naturecore','Fairycore','visual_overlap'],
+  ['Kidcore','Webcore','historical_influence'],
+  ['Fashioncore','Kidcore','search_overlap'],
+  ['Archive Core','Webcore','historical_influence'],
+  ['Campcore','Naturecore','visual_overlap'],
+  ['Hopecore','Dreamcore','emotional_overlap'],
+  ['Dollcore','Fashioncore','visual_overlap'],
+  ['Spacecore','Webcore','visual_overlap']
+];
+
+function cleanName(value) {
+  return String(value || '').toLowerCase().replace(/[–—_-]+/g, ' ').replace(/\bcore\b/g, ' core ').replace(/\s+/g, ' ').trim();
+}
+
+function scoreCluster(name, cluster) {
+  const haystack = ` ${cleanName(name)} `;
+  let score = 0;
+  cluster.patterns.forEach((pattern) => {
+    const needle = cleanName(pattern);
+    if (!needle) return;
+    if (haystack.includes(` ${needle} `)) score += 4;
+    else if (haystack.includes(needle)) score += 2;
+  });
+  if (normalize(name) === normalize(cluster.hub)) score += 20;
+  return score;
+}
+
+function classify(name) {
+  const exact = CLUSTERS.find((cluster) => cluster.names.some((candidate) => normalize(candidate) === normalize(name)));
+  if (exact) return exact;
+  const ranked = CLUSTERS.map((cluster) => ({ cluster, score: scoreCluster(name, cluster) })).sort((a, b) => b.score - a.score);
+  return ranked[0].score > 0 ? ranked[0].cluster : CLUSTERS.find((cluster) => cluster.id === 'persona-character');
+}
+
+function genericDescription(record, cluster) {
+  const subject = record.name.replace(/\s*core$/i, '').trim() || record.name;
+  return `${record.name} is indexed as a ${cluster.label.toLowerCase()} formation: an internet-organized selection of imagery, emotion, references, and identity signals associated with ${subject}.`;
+}
+
 export function buildCoreGraph(records) {
-  const recordMap = new Map(records.map((record) => [normalize(record.name), record]));
   const nodes = [];
   const nodeMap = new Map();
+  const groups = new Map(CLUSTERS.map((cluster) => [cluster.id, []]));
 
-  CLUSTERS.forEach((cluster) => {
-    cluster.names.forEach((name) => {
-      const record = recordMap.get(normalize(name));
-      if (!record) return;
-      const id = normalize(record.name);
-      const node = {
-        id,
-        name: record.name,
-        type: 'aesthetic',
-        parent: record.name === cluster.hub ? 'aestheticcore' : normalize(cluster.hub),
-        cluster: cluster.id,
-        clusterLabel: cluster.label,
-        description: DESCRIPTIONS[record.name] || `${record.name} belongs to the ${cluster.label.toLowerCase()} family through shared imagery, emotion, history, or user interest.`,
-        keywords: cluster.keywords,
-        visuals: cluster.visuals,
-        emotions: cluster.emotions,
-        era: cluster.era,
-        thumbnail: record.paths[0] || '',
-        graphicCount: record.paths.length
-      };
-      nodes.push(node);
-      nodeMap.set(id, node);
-    });
+  records.forEach((record) => {
+    const cluster = classify(record.name);
+    const id = normalize(record.name);
+    const node = {
+      id,
+      name: record.name,
+      type: 'internet_aesthetic',
+      parent: normalize(record.name) === normalize(cluster.hub) ? 'aestheticformation' : normalize(cluster.hub),
+      cluster: cluster.id,
+      clusterLabel: cluster.label,
+      description: DESCRIPTIONS[record.name] || genericDescription(record, cluster),
+      keywords: cluster.keywords,
+      visuals: cluster.visuals,
+      emotions: cluster.emotions,
+      era: cluster.era,
+      thumbnail: record.paths[0] || '',
+      graphicCount: record.paths.length
+    };
+    nodes.push(node);
+    nodeMap.set(id, node);
+    groups.get(cluster.id).push(node);
   });
 
   const edges = [];
@@ -144,12 +235,29 @@ export function buildCoreGraph(records) {
   };
 
   CLUSTERS.forEach((cluster) => {
-    cluster.names.forEach((name) => {
-      if (name === cluster.hub) return;
-      addEdge(cluster.hub, name, 'category_parent', `${cluster.hub} acts as the broad hub for this part of the ${cluster.label.toLowerCase()} family.`);
+    const members = [...(groups.get(cluster.id) || [])].sort((a, b) => b.graphicCount - a.graphicCount || a.name.localeCompare(b.name));
+    if (!members.length) return;
+    const explicitHub = members.find((node) => normalize(node.name) === normalize(cluster.hub));
+    const hub = explicitHub || members[0];
+    members.forEach((node) => {
+      if (node.id === hub.id) return;
+      addEdge(hub.name, node.name, 'category_parent', `${hub.name} is the visible hub for the ${cluster.label.toLowerCase()} cluster.`);
+    });
+    const ring = members.filter((node) => node.id !== hub.id);
+    ring.forEach((node, index) => {
+      if (ring.length < 2) return;
+      const next = ring[(index + 1) % ring.length];
+      addEdge(node.name, next.name, index % 2 ? 'search_overlap' : 'sibling', `Both are adjacent formations inside the ${cluster.label.toLowerCase()} field.`);
     });
   });
 
   CURATED_EDGES.forEach((edge) => addEdge(...edge));
-  return { nodes, edges, relationships: RELATIONSHIPS, clusters: CLUSTERS.map(({ id, label }) => ({ id, label })) };
+  CROSS_CLUSTER_BRIDGES.forEach(([from, to, relationship]) => addEdge(from, to, relationship, 'This bridge shows how one aesthetic field can transform into or overlap with another.'));
+
+  return {
+    nodes,
+    edges,
+    relationships: RELATIONSHIPS,
+    clusters: CLUSTERS.map(({ id, label, hub }) => ({ id, label, hub }))
+  };
 }
