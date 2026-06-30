@@ -23,7 +23,6 @@ export function sidebar(activeView = 'home', recent = []) {
       ${navItem('home', 'Home', '⌂', activeView)}
       ${navItem('cores', 'Cores', '◫', activeView)}
       ${navItem('articles', 'Articles', '☰', activeView)}
-      ${navItem('graphics', 'Graphics', '▣', activeView)}
       ${navItem('quiz', 'Find Your Core', '◈', activeView)}
       ${navItem('archive', 'Archive', '⌲', activeView)}
       ${navItem('about', 'About', 'ⓘ', activeView)}
