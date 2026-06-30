@@ -3,14 +3,29 @@ import { loadCore } from './article.js';
 import { homeView, coreView } from './views.js';
 import { aboutView, archiveView, articlesView, coresView, graphicsView } from './sections.js';
 import { graphView, mountCoreGraph } from './graph.js';
+import { quizView, wireQuiz } from './quiz.js';
 
 const app = document.getElementById('app');
 const RECENT_KEY = 'coreWikiRecent';
-const VALID_VIEWS = new Set(['home', 'cores', 'articles', 'graphics', 'graph', 'archive', 'about']);
+const THEME_KEY = 'coreWikiTheme';
+const VALID_VIEWS = new Set(['home', 'cores', 'articles', 'graphics', 'graph', 'archive', 'about', 'quiz']);
 let graphicsLimit = 60;
 let graphicsQuery = '';
 let graphicsTimer;
 let graphCleanup = null;
+let appNavs = 0;
+
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme === 'dark' ? 'dark' : 'light';
+}
+
+function initTheme() {
+  let theme = localStorage.getItem(THEME_KEY);
+  if (!theme) {
+    theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  applyTheme(theme);
+}
 
 function getRecentNames() {
   try { return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]'); }
@@ -47,6 +62,7 @@ function goView(view) {
   const url = new URL(location.href);
   url.search = '';
   if (target !== 'home') url.searchParams.set('view', target);
+  appNavs += 1;
   history.pushState({ view: target }, '', url);
   renderRoute().catch(renderError);
 }
@@ -57,8 +73,22 @@ function navigateCore(title) {
   const url = new URL(location.href);
   url.search = '';
   url.searchParams.set('core', value);
+  appNavs += 1;
   history.pushState({ core: value }, '', url);
   renderCore(value).catch(renderError);
+}
+
+function wireThemeToggle() {
+  const button = document.getElementById('themeToggle');
+  if (!button) return;
+  const setIcon = () => { button.textContent = document.documentElement.dataset.theme === 'dark' ? '☾' : '☼'; };
+  setIcon();
+  button.addEventListener('click', () => {
+    const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
+    localStorage.setItem(THEME_KEY, next);
+    setIcon();
+  });
 }
 
 function wireCommon() {
@@ -83,10 +113,35 @@ function wireCommon() {
     navigateCore(input?.value);
   });
 
+  wireThemeToggle();
+
+  const back = document.getElementById('topbarBack');
+  if (back) {
+    const onHome = currentView() === 'home';
+    back.classList.toggle('hidden', onHome);
+    back.addEventListener('click', () => {
+      if (appNavs > 0) history.back();
+      else goView('home');
+    });
+  }
+
   document.querySelectorAll('img').forEach((image) => {
     image.addEventListener('error', () => image.remove(), { once: true });
   });
 }
+
+document.addEventListener('click', (event) => {
+  if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  const link = event.target.closest('a[href]');
+  if (!link || link.target === '_blank') return;
+  let url;
+  try { url = new URL(link.href, location.href); } catch { return; }
+  if (url.origin !== location.origin) return;
+  const core = url.searchParams.get('core');
+  if (!core) return;
+  event.preventDefault();
+  navigateCore(core);
+});
 
 function wireSimpleFilter() {
   const input = document.getElementById('sectionSearch');
@@ -174,9 +229,18 @@ async function renderGraph() {
   graphCleanup = mountCoreGraph(stats.records);
 }
 
+async function renderQuiz() {
+  const [stats, recent] = await Promise.all([getStats(), recentRecords()]);
+  document.title = 'Find Your Core - Core Wiki';
+  app.innerHTML = quizView(stats, recent);
+  wireCommon();
+  wireQuiz();
+}
+
 async function renderSection(view) {
   if (view === 'graphics') return renderGraphics();
   if (view === 'graph') return renderGraph();
+  if (view === 'quiz') return renderQuiz();
   const [stats, recent] = await Promise.all([getStats(), recentRecords()]);
   const builders = { cores: coresView, articles: articlesView, archive: archiveView, about: aboutView };
   const builder = builders[view] || coresView;
@@ -211,5 +275,9 @@ function renderError(error) {
   app.innerHTML = `<div class="error-wrap"><div><h2>Page unavailable</h2><p>${String(error?.message || 'The page could not be loaded.')}</p><p><a href="./">Return home</a></p></div></div>`;
 }
 
-window.addEventListener('popstate', () => renderRoute().catch(renderError));
+initTheme();
+window.addEventListener('popstate', () => {
+  appNavs = Math.max(0, appNavs - 1);
+  renderRoute().catch(renderError);
+});
 renderRoute().catch(renderError);

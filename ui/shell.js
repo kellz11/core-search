@@ -24,6 +24,7 @@ export function sidebar(activeView = 'home', recent = []) {
       ${navItem('cores', 'Cores', '◫', activeView)}
       ${navItem('articles', 'Articles', '☰', activeView)}
       ${navItem('graphics', 'Graphics', '▣', activeView)}
+      ${navItem('quiz', 'Find Your Core', '◈', activeView)}
       ${navItem('archive', 'Archive', '⌲', activeView)}
       ${navItem('about', 'About', 'ⓘ', activeView)}
     </nav>
@@ -44,11 +45,12 @@ export function sidebar(activeView = 'home', recent = []) {
 
 export function topbar(value = '') {
   return `<div class="topbar">
+    <button class="topbar-back hidden" id="topbarBack" type="button" aria-label="Go back">←</button>
     <form class="search-wrap" id="searchForm">
       <input class="search-input" id="searchInput" name="core" type="search" autocomplete="off" spellcheck="false" placeholder="Search the Core Wiki" value="${escapeHtml(value)}">
       <div class="search-actions"><button class="icon-btn hidden" id="clearButton" type="button">×</button><button class="search-submit" type="submit">Open</button></div>
     </form>
-    <div class="icon-strip"><button class="icon-btn" type="button">☼</button><button class="icon-btn" type="button">◌</button><div class="avatar">K</div></div>
+    <div class="icon-strip"><button class="icon-btn" id="themeToggle" type="button" aria-label="Toggle dark mode">☼</button><button class="icon-btn" type="button">◌</button><div class="avatar">K</div></div>
   </div>`;
 }
 
