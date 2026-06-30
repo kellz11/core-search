@@ -1,17 +1,14 @@
 import { clean, getStats, loadManifest, normalize } from './core-data.js';
 import { loadCore } from './article.js';
 import { homeView, coreView } from './views.js';
-import { aboutView, archiveView, articlesView, coresView, graphicsView } from './sections.js';
+import { aboutView, archiveView, articlesView, coresView } from './sections.js';
 import { graphView, mountCoreGraph } from './graph.js';
 import { quizView, wireQuiz } from './quiz.js';
 
 const app = document.getElementById('app');
 const RECENT_KEY = 'coreWikiRecent';
 const THEME_KEY = 'coreWikiTheme';
-const VALID_VIEWS = new Set(['home', 'cores', 'articles', 'graphics', 'graph', 'archive', 'about', 'quiz']);
-let graphicsLimit = 60;
-let graphicsQuery = '';
-let graphicsTimer;
+const VALID_VIEWS = new Set(['home', 'cores', 'articles', 'graph', 'archive', 'about', 'quiz']);
 let graphCleanup = null;
 let appNavs = 0;
 
@@ -161,39 +158,6 @@ function wireSimpleFilter() {
   });
 }
 
-function flattenGraphics(records) {
-  return records.flatMap((record) => record.paths.map((path) => ({ core: record.name, path })));
-}
-
-async function renderGraphics(preserveFocus = false) {
-  const [stats, recent] = await Promise.all([getStats(), recentRecords()]);
-  const all = flattenGraphics(stats.records);
-  const needle = graphicsQuery.toLowerCase().trim();
-  const filtered = needle ? all.filter((item) => item.core.toLowerCase().includes(needle) || item.path.toLowerCase().includes(needle)) : all;
-  app.innerHTML = graphicsView(stats, recent, filtered, graphicsLimit);
-  wireCommon();
-
-  const sectionInput = document.getElementById('sectionSearch');
-  if (sectionInput) {
-    sectionInput.value = graphicsQuery;
-    sectionInput.addEventListener('input', () => {
-      graphicsQuery = sectionInput.value;
-      graphicsLimit = 60;
-      clearTimeout(graphicsTimer);
-      graphicsTimer = setTimeout(() => renderGraphics(true).catch(renderError), 120);
-    });
-    if (preserveFocus) {
-      sectionInput.focus();
-      sectionInput.setSelectionRange(sectionInput.value.length, sectionInput.value.length);
-    }
-  }
-
-  document.getElementById('loadMoreGraphics')?.addEventListener('click', () => {
-    graphicsLimit += 60;
-    renderGraphics().catch(renderError);
-  });
-}
-
 function wireArticle() {
   const card = document.getElementById('articleCard');
   const body = document.getElementById('articleBody');
@@ -238,7 +202,6 @@ async function renderQuiz() {
 }
 
 async function renderSection(view) {
-  if (view === 'graphics') return renderGraphics();
   if (view === 'graph') return renderGraph();
   if (view === 'quiz') return renderQuiz();
   const [stats, recent] = await Promise.all([getStats(), recentRecords()]);
