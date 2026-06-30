@@ -1,0 +1,75 @@
+name: Install uploaded Core Search
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/install-uploaded-core-search.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Reconstruct uploaded package
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          chunks=(.sync-upload/*.hex)
+          if [ ${#chunks[@]} -eq 0 ]; then
+            echo "No staged upload chunks found."
+            exit 1
+          fi
+
+          mkdir -p /tmp/core-upload
+          cat "${chunks[@]}" | tr -d '\r\n ' | xxd -r -p | base64 --decode > /tmp/core-upload/package
+
+          file /tmp/core-upload/package
+          mkdir -p /tmp/core-upload/extracted
+          if unzip -t /tmp/core-upload/package >/dev/null 2>&1; then
+            unzip -q /tmp/core-upload/package -d /tmp/core-upload/extracted
+          elif tar -tzf /tmp/core-upload/package >/dev/null 2>&1; then
+            tar -xzf /tmp/core-upload/package -C /tmp/core-upload/extracted
+          else
+            echo "The reconstructed package is not a valid ZIP or tar.gz archive."
+            exit 1
+          fi
+
+          source_dir=/tmp/core-upload/extracted
+          entries=("$source_dir"/*)
+          if [ ${#entries[@]} -eq 1 ] && [ -d "${entries[0]}" ]; then
+            source_dir="${entries[0]}"
+          fi
+
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -a "$source_dir"/. .
+
+      - name: Verify and commit exact uploaded site
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f index.html
+          test -f README.md
+          test -f app.js
+          test -d assets
+          test -d ui
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Repository already matches the uploaded package."
+            exit 0
+          fi
+          git commit -m "Replace repository with uploaded Core Search package"
+          git push origin main
