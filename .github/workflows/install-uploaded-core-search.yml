@@ -20,56 +20,89 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Reconstruct uploaded package
+      - name: Reconstruct exact uploaded ZIP
         shell: bash
         run: |
           set -euo pipefail
-          shopt -s nullglob
-          chunks=(.sync-upload/*.hex)
-          if [ ${#chunks[@]} -eq 0 ]; then
-            echo "No staged upload chunks found."
-            exit 1
-          fi
+          python3 - <<'PY'
+          from pathlib import Path
+          import base64
+          import hashlib
+          import sys
 
-          mkdir -p /tmp/core-upload
-          cat "${chunks[@]}" | tr -d '\r\n ' | xxd -r -p | base64 --decode > /tmp/core-upload/package
+          chunk_dir = Path('.sync-upload')
+          chunks = sorted(chunk_dir.glob('chunk*'))
+          if not chunks:
+              raise SystemExit('No staged upload chunks were found.')
 
-          file /tmp/core-upload/package
-          mkdir -p /tmp/core-upload/extracted
-          if unzip -t /tmp/core-upload/package >/dev/null 2>&1; then
-            unzip -q /tmp/core-upload/package -d /tmp/core-upload/extracted
-          elif tar -tzf /tmp/core-upload/package >/dev/null 2>&1; then
-            tar -xzf /tmp/core-upload/package -C /tmp/core-upload/extracted
-          else
-            echo "The reconstructed package is not a valid ZIP or tar.gz archive."
-            exit 1
-          fi
+          encoded_parts = []
+          print('Reading staged chunks in this order:')
+          for path in chunks:
+              print(f'  {path}')
+              text = ''.join(path.read_text(encoding='utf-8').split())
+              if path.suffix == '.txt':
+                  encoded_parts.append(text)
+              elif path.suffix == '.hex':
+                  try:
+                      encoded_parts.append(bytes.fromhex(text).decode('ascii'))
+                  except Exception as exc:
+                      raise SystemExit(f'Could not decode {path}: {exc}')
+              else:
+                  raise SystemExit(f'Unexpected staged chunk type: {path}')
 
-          source_dir=/tmp/core-upload/extracted
+          encoded = ''.join(encoded_parts)
+          try:
+              archive = base64.b64decode(encoded, validate=True)
+          except Exception as exc:
+              raise SystemExit(f'Combined staged data is not valid Base64: {exc}')
+
+          output = Path('/tmp/core-search-upload.zip')
+          output.write_bytes(archive)
+
+          digest = hashlib.sha256(archive).hexdigest()
+          expected = '889c7216e19d732c71595261eb48a778806602e83ad302e21341176b7b2d98de'
+          print(f'Reconstructed {len(archive):,} bytes')
+          print(f'SHA-256: {digest}')
+          if digest != expected:
+              raise SystemExit(
+                  'The reconstructed ZIP does not exactly match the uploaded file. '
+                  f'Expected {expected}, received {digest}.'
+              )
+          PY
+
+      - name: Extract uploaded project
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/core-search-extracted
+          mkdir -p /tmp/core-search-extracted
+          unzip -q /tmp/core-search-upload.zip -d /tmp/core-search-extracted
+
+          source_dir=/tmp/core-search-extracted
           entries=("$source_dir"/*)
           if [ ${#entries[@]} -eq 1 ] && [ -d "${entries[0]}" ]; then
             source_dir="${entries[0]}"
           fi
 
+          test -f "$source_dir/index.html"
+          test -f "$source_dir/app.js"
+          test -f "$source_dir/README.md"
+          test -d "$source_dir/assets"
+          test -d "$source_dir/ui"
+
           find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
           cp -a "$source_dir"/. .
 
-      - name: Verify and commit exact uploaded site
+      - name: Commit uploaded project to main
         shell: bash
         run: |
           set -euo pipefail
-          test -f index.html
-          test -f README.md
-          test -f app.js
-          test -d assets
-          test -d ui
-
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           if git diff --cached --quiet; then
-            echo "Repository already matches the uploaded package."
+            echo "The repository already matches the uploaded ZIP."
             exit 0
           fi
-          git commit -m "Replace repository with uploaded Core Search package"
-          git push origin main
+          git commit -m "Replace repository with exact uploaded Core Search project"
+          git push origin HEAD:main
